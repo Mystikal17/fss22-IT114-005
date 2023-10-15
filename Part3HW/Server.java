@@ -13,6 +13,7 @@ public class Server {
     // connected clients
     private List<ServerThread> clients = new ArrayList<ServerThread>();
 
+<<<<<<< HEAD
     //Random number generator for coin/dice games
     private Random randomNum = new Random();
 
@@ -20,14 +21,26 @@ public class Server {
     //cointoss method to make it flip a coin for heads or tails
     private String coinToss(){
         int toss = randomNum.nextInt(2); 
+=======
+    // Random number generator for coin/dice games
+    private Random randomNum = new Random();
+
+    // cointoss method to make it flip a coin for heads or tails
+    private String coinToss() {
+        int toss = randomNum.nextInt(2);
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
         if (toss == 0)
             System.out.println("Heads");
         else if (toss == 1)
             System.out.println("Tails");
     }
 
+<<<<<<< HEAD
 
         private void start(int port) {
+=======
+    private void start(int port) {
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
         this.port = port;
         // server listening
         try (ServerSocket serverSocket = new ServerSocket(port);) {
@@ -38,11 +51,19 @@ public class Server {
                 if (incoming_client != null) {
                     System.out.println("Client connected");
                     ServerThread sClient = new ServerThread(incoming_client, this);
+<<<<<<< HEAD
                     
                     clients.add(sClient);
                     sClient.start();
                     incoming_client = null;
                     
+=======
+
+                    clients.add(sClient);
+                    sClient.start();
+                    incoming_client = null;
+
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
                 }
             } while ((incoming_client = serverSocket.accept()) != null);
         } catch (IOException e) {
@@ -53,6 +74,7 @@ public class Server {
         }
     }
 
+<<<<<<< HEAD
 
 
     protected synchronized void disconnect(ServerThread client) {
@@ -65,6 +87,16 @@ public class Server {
 
     protected synchronized void broadcast(String message, long id) {
         if(processCommand(message, id)){
+=======
+    protected synchronized void disconnect(ServerThread client) {
+        long id = client.getId();
+        client.disconnect();
+        broadcast("Disconnected", id);
+    }
+
+    protected synchronized void broadcast(String message, long id) {
+        if (processCommand(message, id)) {
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
 
             return;
         }
@@ -73,7 +105,11 @@ public class Server {
         // change as clients connect/disconnect
         message = String.format("User[%d]: %s", id, message);
         // end temp identifier
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
         // loop over clients and send out the message
         Iterator<ServerThread> it = clients.iterator();
         while (it.hasNext()) {
@@ -87,14 +123,21 @@ public class Server {
         }
     }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
     private boolean processCommand(String message, long clientId){
         System.out.println("Checking command: " + message);
         if(message.equalsIgnoreCase("disconnect")){
             Iterator<ServerThread> it = clients.iterator();
 
             //making coin game a command with using '/cointoss' for client to use in server
+<<<<<<< HEAD
             else if (message.equalsIgnoreCase("/tosscoin"))
+=======
+            else if (message.equalsIgnoreCase("/tosscoin")){
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
 
                 //holds result for the toss and broadcasts out in server what the result and who tossed the coin
                 String result = cointoss();
@@ -149,7 +192,11 @@ public class Server {
         broadcast(resultMessage.toString(), clientId);
     }
 
+<<<<<<< HEAD
     private String getClientName(long clientId){
+=======
+    private String getClientName(long clientId) {
+>>>>>>> 8151890b487dfd307c45d07e9f4b62a0c2049f49
         return "User[" + clientId + "]";
     }
 
