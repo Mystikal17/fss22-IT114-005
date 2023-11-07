@@ -1,9 +1,12 @@
-package Project;
+package Project.server;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
+import Project.common.Payload;
+import Project.common.PayloadType;
 
 /**
  * A server-side representation of a single client
@@ -150,6 +153,6 @@ public class ServerThread extends Thread {
         } catch (IOException e) {
             info("Client already closed");
         }
-        info("Thread cleanup() complete");
     }
 }
+       
