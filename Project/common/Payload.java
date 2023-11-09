@@ -6,10 +6,34 @@ public class Payload implements Serializable {
     private static final long serialVersionUID = 1L;//change this if the class changes
     private boolean startGame;
 
+    private int xCoordinate;
+    private int yCoordinate;
+    private String color;
+
+    public int getXCoordinate(){
+        return xCoordinate;
+    }
+    public void setXCoordinate(int xCoordinate){
+        this.xCoordinate = xCoordinate;
+    }
+    public int getYCoordinate(){
+        return yCoordinate;
+    }
+    public void setYCoordinate(int yCoordinate){
+        this.yCoordinate = yCoordinate;
+    }
+
+    public String getColor(){
+        return color;
+    }
+    public void setColor(String color){
+        this.color = color;
+    }
+
     public boolean isStartGame(){
         return startGame;
     }
-    
+
     public void setStartGame(boolean startGame){
         this.startGame = startGame;
     }

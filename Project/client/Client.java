@@ -112,6 +112,17 @@ public class Client {
      * @return true if a text was a command or triggered a command
      */
 
+     private void sendDrawingData(int x, int y, String color) throws IOException{
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.DRAWING);
+        p.setClientName(clientName);
+        p.setXCoordinate(x);
+        p.setYCoordinate(y);
+        p.setColor(color);
+        out.writeObject(p);
+
+     }
+
      //I added the /startgame command only when there is players in the room.
     private boolean processCommand(String text) {
         if (isConnection(text)) {
@@ -196,6 +207,23 @@ public class Client {
                         } catch (Exception e) {
                             System.out.println("Connection dropped");
                             break;
+                        }
+                        if (line.startsWith("/draw")) {
+                            try {
+                                // Split the line to extract coordinates and color
+                                String[] parts = line.split(" ");
+                                if (parts.length == 4) {
+                                    int x = Integer.parseInt(parts[1]);
+                                    int y = Integer.parseInt(parts[2]);
+                                    String color = parts[3];
+                                    sendDrawingData(x, y, color);
+                                } else {
+                                    System.out.println("Invalid /draw command format. Usage: /draw x y color");
+                                }
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid coordinates. Please use numbers for x and y.");
+                            }
+                            continue;
                         }
                     }
                     System.out.println("Exited loop");

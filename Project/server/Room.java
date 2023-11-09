@@ -13,6 +13,7 @@ public class Room implements AutoCloseable{
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
 	private List<ServerThread> playerOrder = new ArrayList<ServerThread>();
 	private List<String> words = new ArrayList<>();
+
 	private boolean isRunning = false;
 	
 	// Commands
@@ -23,6 +24,10 @@ public class Room implements AutoCloseable{
 	private final static String LOGOUT = "logout";
 	private final static String LOGOFF = "logoff";
 
+	public List<ServerThread> getClients(){
+		return clients;
+	}
+	
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
