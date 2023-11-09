@@ -128,6 +128,18 @@ public class Client {
             return true;
         } else if (isName(text)) {
             return true;
+        }else if (text.equalsIgnoreCase("/startgame")) {
+            if (isConnected()) {
+                try {
+                    sendStartGameCommand();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Not connected to the server");
+            }
+            return true;
         }
         return false;
     }
@@ -144,6 +156,14 @@ public class Client {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.MESSAGE);
         p.setMessage(message);
+        p.setClientName(clientName);
+        out.writeObject(p);
+    }
+
+    private void sendStartGameCommand() throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.START_GAME);
+        p.setStartGame(true);
         p.setClientName(clientName);
         out.writeObject(p);
     }

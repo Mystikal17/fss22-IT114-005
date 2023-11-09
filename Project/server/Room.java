@@ -6,8 +6,11 @@ import java.util.List;
 public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
+	
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
+	private List<ServerThread> playerOrder = new ArrayList<ServerThread>();
 	private boolean isRunning = false;
+	
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -19,8 +22,22 @@ public class Room implements AutoCloseable{
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
+
 	}
 
+	public void startGame(){
+		List<ServerThread> playerOrder = getPlayerOrder();
+		if(!playerOrder.isEmpty()){
+			ServerThread firstDrawingPlayer = playerOrder.get(0);
+
+			firstDrawingPlayer.sendMessage("Server", "You will be the first to draw.");
+		} else {
+			if(clients.isEmpty()){
+				close();
+			}
+		}
+
+	}
 	private void info(String message) {
 		System.out.println(String.format("Room[%s]: %s", name, message));
 	}
@@ -55,6 +72,11 @@ public class Room implements AutoCloseable{
 			}.start();
 
 		}
+		playerOrder.add(client);
+	}
+
+	public List<ServerThread> getPlayerOrder(){
+		return playerOrder;
 	}
 
 	protected synchronized void removeClient(ServerThread client) {
@@ -198,4 +220,6 @@ public class Room implements AutoCloseable{
 		isRunning = false;
 		clients = null;
 	}
+
+	
 }

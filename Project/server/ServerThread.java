@@ -139,6 +139,10 @@ public class ServerThread extends Thread {
                     Room.joinRoom("lobby", this);
                 }
                 break;
+            case START_GAME:
+                if(currentRoom != null){
+                    currentRoom.startGame();
+                } 
             default:
                 break;
 
