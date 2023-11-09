@@ -111,6 +111,8 @@ public class Client {
      * @param text
      * @return true if a text was a command or triggered a command
      */
+
+     //I added the /startgame command only when there is players in the room.
     private boolean processCommand(String text) {
         if (isConnection(text)) {
             if (clientName.isBlank()) {

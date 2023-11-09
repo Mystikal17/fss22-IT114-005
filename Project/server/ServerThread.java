@@ -142,7 +142,16 @@ public class ServerThread extends Thread {
             case START_GAME:
                 if(currentRoom != null){
                     currentRoom.startGame();
-                } 
+                }
+                break;
+            case DRAWING:
+                break;
+            case GAME_OVER:
+                break;
+            case ROUND_OVER:
+                break;
+            case GUESS:
+                break;
             default:
                 break;
 

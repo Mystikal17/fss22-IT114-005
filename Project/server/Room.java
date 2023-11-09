@@ -1,7 +1,10 @@
 package Project.server;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import Project.common.WordList;
+import java.util.Random;
 
 public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
@@ -9,6 +12,7 @@ public class Room implements AutoCloseable{
 	
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
 	private List<ServerThread> playerOrder = new ArrayList<ServerThread>();
+	private List<String> words = new ArrayList<>();
 	private boolean isRunning = false;
 	
 	// Commands
@@ -23,6 +27,9 @@ public class Room implements AutoCloseable{
 		this.name = name;
 		isRunning = true;
 
+		//gets all the words from the wordlist class
+		words.addAll(WordList.getWordList());
+
 	}
 
 	public void startGame(){
@@ -30,7 +37,9 @@ public class Room implements AutoCloseable{
 		if(!playerOrder.isEmpty()){
 			ServerThread firstDrawingPlayer = playerOrder.get(0);
 
+			String word = selectWordForDrawingPlayer();
 			firstDrawingPlayer.sendMessage("Server", "You will be the first to draw.");
+			firstDrawingPlayer.sendMessage("Server", "Your word is: " + word);
 		} else {
 			if(clients.isEmpty()){
 				close();
@@ -38,6 +47,22 @@ public class Room implements AutoCloseable{
 		}
 
 	}
+
+	//Method picks the words for the players.
+	private String selectWordForDrawingPlayer(){
+		
+		if(words.isEmpty()){
+			//will refill if no words are left
+			words.addAll(WordList.getWordList());
+		}
+		Random random = new Random();
+		int randomIndex = random.nextInt(words.size());
+		String selectedWord = words.get(randomIndex);
+		words.remove(randomIndex);
+
+		return selectedWord;
+	}
+
 	private void info(String message) {
 		System.out.println(String.format("Room[%s]: %s", name, message));
 	}
@@ -221,5 +246,7 @@ public class Room implements AutoCloseable{
 		clients = null;
 	}
 
-	
+
+
+
 }
