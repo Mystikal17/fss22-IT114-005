@@ -31,21 +31,11 @@ public class Client {
         if (server == null) {
             return false;
         }
-        // https://stackoverflow.com/a/10241044
-        // Note: these check the client's end of the socket connect; therefore they
-        // don't really help determine
-        // if the server had a problem
+
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
 
     }
 
-    /**
-     * Takes an ip address and a port to attempt a socket connection to a server.
-     * 
-     * @param address
-     * @param port
-     * @return true if connection was successful
-     */
     private boolean connect(String address, int port) {
         try {
             server = new Socket(address, port);
@@ -64,24 +54,7 @@ public class Client {
         return isConnected();
     }
 
-    /**
-     * <p>
-     * Check if the string contains the <i>connect</i> command
-     * followed by an ip address and port or localhost and port.
-     * </p>
-     * <p>
-     * Example format: 123.123.123:3000
-     * </p>
-     * <p>
-     * Example format: localhost:3000
-     * </p>
-     * https://www.w3schools.com/java/java_regex.asp
-     * 
-     * @param text
-     * @return
-     */
     private boolean isConnection(String text) {
-        // https://www.w3schools.com/java/java_regex.asp
         return text.matches(ipAddressPattern)
                 || text.matches(localhostPattern);
     }
@@ -102,45 +75,12 @@ public class Client {
         return false;
     }
 
-    /**
-     * Controller for handling various text commands.
-     * <p>
-     * Add more here as needed
-     * </p>
-     * 
-     * @param text
-     * @return true if a text was a command or triggered a command
-     */
-
-     private void sendGuess(String guess) throws IOException{
-        Payload p = new Payload();
-        p.setPayloadType(PayloadType.GUESS);
-        p.setClientName(clientName);
-        p.setGuess(guess);
-        out.writeObject(p);
-     }
-     
-     private void sendDrawingData(int x, int y, String color) throws IOException{
-        Payload p = new Payload();
-        p.setPayloadType(PayloadType.DRAWING);
-        p.setClientName(clientName);
-        p.setXCoordinate(x);
-        p.setYCoordinate(y);
-        p.setColor(color);
-        out.writeObject(p);
-
-     }
-
-     //I added the /startgame command only when there is players in the room.
     private boolean processCommand(String text) {
         if (isConnection(text)) {
             if (clientName.isBlank()) {
                 System.out.println("You must set your name before you can connect via: /name your_name");
                 return true;
             }
-            // replaces multiple spaces with single space
-            // splits on the space after connect (gives us host and port)
-            // splits on : to get host as index 0 and port as index 1
             String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
             connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
             return true;
@@ -148,18 +88,6 @@ public class Client {
             isRunning = false;
             return true;
         } else if (isName(text)) {
-            return true;
-        }else if (text.equalsIgnoreCase("/startgame")) {
-            if (isConnected()) {
-                try {
-                    sendStartGameCommand();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            } else {
-                System.out.println("Not connected to the server");
-            }
             return true;
         }
         return false;
@@ -177,14 +105,6 @@ public class Client {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.MESSAGE);
         p.setMessage(message);
-        p.setClientName(clientName);
-        out.writeObject(p);
-    }
-
-    private void sendStartGameCommand() throws IOException {
-        Payload p = new Payload();
-        p.setPayloadType(PayloadType.START_GAME);
-        p.setStartGame(true);
         p.setClientName(clientName);
         out.writeObject(p);
     }
@@ -215,23 +135,6 @@ public class Client {
                         } catch (Exception e) {
                             System.out.println("Connection dropped");
                             break;
-                        }
-                        if (line.startsWith("/draw")) {
-                            try {
-                                // Split the line to extract coordinates and color
-                                String[] parts = line.split(" ");
-                                if (parts.length == 4) {
-                                    int x = Integer.parseInt(parts[1]);
-                                    int y = Integer.parseInt(parts[2]);
-                                    String color = parts[3];
-                                    sendDrawingData(x, y, color);
-                                } else {
-                                    System.out.println("Invalid /draw command format. Usage: /draw x y color");
-                                }
-                            } catch (NumberFormatException e) {
-                                System.out.println("Invalid coordinates. Please use numbers for x and y.");
-                            }
-                            continue;
                         }
                     }
                     System.out.println("Exited loop");

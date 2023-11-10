@@ -1,16 +1,11 @@
 package Project.server;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-
 import Project.common.Payload;
 import Project.common.PayloadType;
 
-/**
- * A server-side representation of a single client
- */
 public class ServerThread extends Thread {
     private Socket client;
     private String clientName;
@@ -139,21 +134,6 @@ public class ServerThread extends Thread {
                     Room.joinRoom("lobby", this);
                 }
                 break;
-            case START_GAME:
-                if(currentRoom != null){
-                    currentRoom.startGame();
-                }
-                break;
-            case DRAWING:
-                handleDrawingData(p);
-                break;
-            case GAME_OVER:
-                break;
-            case ROUND_OVER:
-                break;
-            case GUESS:
-                handleGuess(p);
-                break;
             default:
                 break;
 
@@ -161,41 +141,6 @@ public class ServerThread extends Thread {
 
     }
 
-    private void handleGuess(Payload p){
-        if(currentRoom != null){
-            String guess = p.getGuess();
-            String currentWordToGuess = currentRoom.getCurrentWordToGuess();
-
-            if(currentWordToGuess != null && guess.equalsIgnoreCase(currentWordToGuess)){
-                String message = p.getClientName() + " guessed correctly!";
-                currentRoom.sendMessage(this, message);
-
-                currentRoom.moveToNextRoundAutomatically();
-            } else {
-                String message = p.getClientName() + " guessed : " + guess + " (Wrong)";
-                currentRoom.sendMessage(this, message);
-            }
-        }
-        //add logic if the guess is right and send a message to other clients.
-    }
-
-
-    private void handleDrawingData(Payload p){
-        int x = p.getXCoordinate();
-        int y = p.getYCoordinate();
-        String color = p.getColor();
-
-        if(currentRoom != null){
-            String message = "Drawing: (" + x + ", " + y + ") in color: " + color;
-            for (ServerThread client : currentRoom.getClients()) {
-                if (client != this) {
-                    // Won't send the drawing data back to the actual sender
-                    client.sendMessage(p.getClientName(), message);
-                }
-            }
-        }
-        
-    }
     private void cleanup() {
         info("Thread cleanup() start");
         try {
@@ -203,6 +148,6 @@ public class ServerThread extends Thread {
         } catch (IOException e) {
             info("Client already closed");
         }
+        info("Thread cleanup() complete");
     }
 }
-       

@@ -3,111 +3,80 @@ package Project.server;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import Project.common.WordList;
-import java.util.Random;
 
 public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
-	
-	
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
-	private List<ServerThread> playerOrder = new ArrayList<ServerThread>();
-	private List<String> words = new ArrayList<>();
-
 	private boolean isRunning = false;
-	private int roundNumber = 0;
-	private ServerThread drawingPlayer = null;
-	private String currentWordToGuess = null;
+	private boolean isRoundActive = false;
+	private int roundTimeInSeconds = 30;
+	private Thread roundThread;
+
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
 	private final static String JOIN_ROOM = "joinroom";
 	private final static String DISCONNECT = "disconnect";
 	private final static String LOGOUT = "logout";
-	private final static String LOGOFF = "logoff";
-
-	public List<ServerThread> getClients(){
-		return clients;
+	private final static String LOGOFF = "logoff";		 
+	private final static String START_GAME = "startgame";
+	private final static String START_ROUND = "startround";
+	private final static String ROUND_OVER = "roundover";
+	private final static String DRAWING = "drawing";
+	private final static String GAME_OVER = "gameover";
+	private final static String GUESS = "guess";
+	
+	public void startRound(){
+		if(!isRoundActive){
+			isRoundActive = true;
+			roundThread = new Thread(() -> {
+				try {
+					sendMessage(null, "Round started! Guess the word.");
+	
+					for (int seconds = roundTimeInSeconds; seconds > 0; seconds--) {
+						sendMessage(null, "Time left: " + seconds + " seconds.");
+						Thread.sleep(1000);
+					}
+					sendMessage(null, "Round ended! The word was: " + getRandomWord());
+					endRound();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			});
+			roundThread.start();
+		}
 	}
+	
+	public void endRound(){
+		isRoundActive = false;
+		if(roundThread != null){
+			roundThread.interrupted();
+		}
+		if (!WordList.getWordList().isEmpty()) {
+			startRound();
+		} else {
+			handleEndOfGame();
+		}
+	}
+	
+	private void handleEndOfGame() {
+		sendMessage(null, "Game over! Thank you for playing.");
+		close();
+	}
+
+
+	private String getRandomWord() {
+    List<String> words = WordList.getWordList();
+    int randomIndex = (int) (Math.random() * words.size());
+    return words.get(randomIndex);
+}
 
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
-
-		//gets all the words from the wordlist class
-		words.addAll(WordList.getWordList());
-
-	}
-
-	public void startGame(){
-		List<ServerThread> playerOrder = getPlayerOrder();
-		selectNextDrawingPlayer();
-		moveToNextRoundAutomatically();
-
-		if(!playerOrder.isEmpty()){
-			ServerThread firstDrawingPlayer = playerOrder.get(0);
-
-			String word = selectWordForDrawingPlayer();
-			firstDrawingPlayer.sendMessage("Server", "You will be the first to draw.");
-			firstDrawingPlayer.sendMessage("Server", "Your word is: " + word);
-		} else {
-			if(clients.isEmpty()){
-				close();
-			}
-		}
-
-	}
-
-	public String getCurrentWordToGuess(){
-		return currentWordToGuess;
-	}
-
-	public void moveToNextRoundAutomatically(){
-		if(drawingPlayer != null && playerOrder.size() > 1){
-			roundNumber++;
-			selectNextDrawingPlayer();
-			chooseNewWordToGuess();
-			informPlayersAboutNewRound();
-		} else{
-			//Add logic when words run out and everyone went. Either new game or ends it to lobby.
-		}
-	}
-
-	private void selectNextDrawingPlayer(){
-		if(!playerOrder.isEmpty()){
-			drawingPlayer = playerOrder.get(roundNumber % playerOrder.size());
-		}
-	}
-
-	private void chooseNewWordToGuess(){
-		if(!words.isEmpty()){
-			Random random = new Random();
-			int randomIndex = random.nextInt(words.size());
-			currentWordToGuess = words.get(randomIndex);
-			words.remove(randomIndex);
-		}
-	}
-
-	private void informPlayersAboutNewRound(){
-		String message = "Starting round " + (roundNumber + 1) + ". Drawing Player: " + drawingPlayer.getClientName();
-		sendMessage(null, message);
-	}
-
-
-	//Method picks the words for the players.
-	private String selectWordForDrawingPlayer(){
-		
-		if(words.isEmpty()){
-			//will refill if no words are left
-			words.addAll(WordList.getWordList());
-		}
-		Random random = new Random();
-		int randomIndex = random.nextInt(words.size());
-		String selectedWord = words.get(randomIndex);
-		words.remove(randomIndex);
-
-		return selectedWord;
 	}
 
 	private void info(String message) {
@@ -130,9 +99,6 @@ public class Room implements AutoCloseable{
 			new Thread() {
 				@Override
 				public void run() {
-					// slight delay to let potentially new client to finish
-					// binding input/output streams
-					// comment out the Thread.sleep to see what happens
 					try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
@@ -144,11 +110,6 @@ public class Room implements AutoCloseable{
 			}.start();
 
 		}
-		playerOrder.add(client);
-	}
-
-	public List<ServerThread> getPlayerOrder(){
-		return playerOrder;
 	}
 
 	protected synchronized void removeClient(ServerThread client) {
@@ -165,10 +126,6 @@ public class Room implements AutoCloseable{
 		checkClients();
 	}
 
-	/***
-	 * Checks the number of clients.
-	 * If zero, begins the cleanup process to dispose of the room
-	 */
 	private void checkClients() {
 		// Cleanup if room is empty and not lobby
 		if (!name.equalsIgnoreCase("lobby") && clients.size() == 0) {
@@ -176,13 +133,6 @@ public class Room implements AutoCloseable{
 		}
 	}
 
-	/***
-	 * Helper function to process messages to trigger different functionality.
-	 * 
-	 * @param message The original message being sent
-	 * @param client  The sender of the message (since they'll be the ones
-	 *                triggering the actions)
-	 */
 	private boolean processCommands(String message, ServerThread client) {
 		boolean wasCommand = false;
 		try {
@@ -206,6 +156,20 @@ public class Room implements AutoCloseable{
 					case LOGOUT:
 					case LOGOFF:
 						Room.disconnectClient(client, this);
+						break;
+					case START_GAME:
+						break;
+					case START_ROUND:
+						startRound();
+						break;
+					case ROUND_OVER:
+						endRound();
+						break;
+					case GUESS:
+						break;
+					case GAME_OVER:
+						break;
+					case DRAWING:
 						break;
 					default:
 						wasCommand = false;
@@ -242,14 +206,6 @@ public class Room implements AutoCloseable{
 	}
 	// end command helper methods
 
-	/***
-	 * Takes a sender and a message and broadcasts the message to all clients in
-	 * this room. Client is mostly passed for command purposes but we can also use
-	 * it to extract other client info.
-	 * 
-	 * @param sender  The client sending the message
-	 * @param message The message to broadcast inside the room
-	 */
 	protected synchronized void sendMessage(ServerThread sender, String message) {
 		if (!isRunning) {
 			return;
@@ -292,8 +248,4 @@ public class Room implements AutoCloseable{
 		isRunning = false;
 		clients = null;
 	}
-
-
-
-
 }

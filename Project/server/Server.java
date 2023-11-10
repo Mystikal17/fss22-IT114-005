@@ -45,12 +45,6 @@ public class Server {
         }
     }
 
-    /***
-     * Helper function to check if room exists by case insensitive name
-     * 
-     * @param roomName The name of the room to look for
-     * @return matched Room or null if not found
-     */
     private Room getRoom(String roomName) {
         for (int i = 0, l = rooms.size(); i < l; i++) {
             if (rooms.get(i).getName().equalsIgnoreCase(roomName)) {
@@ -60,14 +54,6 @@ public class Server {
         return null;
     }
 
-    /***
-     * Attempts to join a room by name. Will remove client from old room and add
-     * them to the new room.
-     * 
-     * @param roomName The desired room to join
-     * @param client   The client moving rooms
-     * @return true if reassign worked; false if new room doesn't exist
-     */
     protected synchronized boolean joinRoom(String roomName, ServerThread client) {
         Room newRoom = roomName.equalsIgnoreCase("lobby")?lobby:getRoom(roomName);
         Room oldRoom = client.getCurrentRoom();
@@ -86,12 +72,6 @@ public class Server {
         return false;
     }
 
-    /***
-     * Attempts to create a room with given name if it doesn't exist already.
-     * 
-     * @param roomName The desired room to create
-     * @return true if it was created and false if it exists
-     */
     protected synchronized boolean createNewRoom(String roomName) {
         if (getRoom(roomName) != null) {
             // TODO can't create room
@@ -113,9 +93,9 @@ public class Server {
 
     protected synchronized void broadcast(String message) {
         if (processCommand(message)) {
-
             return;
         }
+
         // loop over rooms and send out the message
         Iterator<Room> it = rooms.iterator();
         while (it.hasNext()) {
