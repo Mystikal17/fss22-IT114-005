@@ -10,12 +10,15 @@ public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
 	
+	
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
 	private List<ServerThread> playerOrder = new ArrayList<ServerThread>();
 	private List<String> words = new ArrayList<>();
 
 	private boolean isRunning = false;
-	
+	private int roundNumber = 0;
+	private ServerThread drawingPlayer = null;
+	private String currentWordToGuess = null;
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -27,7 +30,7 @@ public class Room implements AutoCloseable{
 	public List<ServerThread> getClients(){
 		return clients;
 	}
-	
+
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
@@ -39,6 +42,9 @@ public class Room implements AutoCloseable{
 
 	public void startGame(){
 		List<ServerThread> playerOrder = getPlayerOrder();
+		selectNextDrawingPlayer();
+		moveToNextRoundAutomatically();
+
 		if(!playerOrder.isEmpty()){
 			ServerThread firstDrawingPlayer = playerOrder.get(0);
 
@@ -52,6 +58,42 @@ public class Room implements AutoCloseable{
 		}
 
 	}
+
+	public String getCurrentWordToGuess(){
+		return currentWordToGuess;
+	}
+
+	public void moveToNextRoundAutomatically(){
+		if(drawingPlayer != null && playerOrder.size() > 1){
+			roundNumber++;
+			selectNextDrawingPlayer();
+			chooseNewWordToGuess();
+			informPlayersAboutNewRound();
+		} else{
+			//Add logic when words run out and everyone went. Either new game or ends it to lobby.
+		}
+	}
+
+	private void selectNextDrawingPlayer(){
+		if(!playerOrder.isEmpty()){
+			drawingPlayer = playerOrder.get(roundNumber % playerOrder.size());
+		}
+	}
+
+	private void chooseNewWordToGuess(){
+		if(!words.isEmpty()){
+			Random random = new Random();
+			int randomIndex = random.nextInt(words.size());
+			currentWordToGuess = words.get(randomIndex);
+			words.remove(randomIndex);
+		}
+	}
+
+	private void informPlayersAboutNewRound(){
+		String message = "Starting round " + (roundNumber + 1) + ". Drawing Player: " + drawingPlayer.getClientName();
+		sendMessage(null, message);
+	}
+
 
 	//Method picks the words for the players.
 	private String selectWordForDrawingPlayer(){

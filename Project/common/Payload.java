@@ -9,7 +9,14 @@ public class Payload implements Serializable {
     private int xCoordinate;
     private int yCoordinate;
     private String color;
+    private String guess;
 
+    public String getGuess(){
+        return guess;
+    }
+    public void setGuess(String guess){
+        this.guess = guess;
+    }
     public int getXCoordinate(){
         return xCoordinate;
     }

@@ -112,6 +112,14 @@ public class Client {
      * @return true if a text was a command or triggered a command
      */
 
+     private void sendGuess(String guess) throws IOException{
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.GUESS);
+        p.setClientName(clientName);
+        p.setGuess(guess);
+        out.writeObject(p);
+     }
+     
      private void sendDrawingData(int x, int y, String color) throws IOException{
         Payload p = new Payload();
         p.setPayloadType(PayloadType.DRAWING);

@@ -152,6 +152,7 @@ public class ServerThread extends Thread {
             case ROUND_OVER:
                 break;
             case GUESS:
+                handleGuess(p);
                 break;
             default:
                 break;
@@ -159,6 +160,25 @@ public class ServerThread extends Thread {
         }
 
     }
+
+    private void handleGuess(Payload p){
+        if(currentRoom != null){
+            String guess = p.getGuess();
+            String currentWordToGuess = currentRoom.getCurrentWordToGuess();
+
+            if(currentWordToGuess != null && guess.equalsIgnoreCase(currentWordToGuess)){
+                String message = p.getClientName() + " guessed correctly!";
+                currentRoom.sendMessage(this, message);
+
+                currentRoom.moveToNextRoundAutomatically();
+            } else {
+                String message = p.getClientName() + " guessed : " + guess + " (Wrong)";
+                currentRoom.sendMessage(this, message);
+            }
+        }
+        //add logic if the guess is right and send a message to other clients.
+    }
+
 
     private void handleDrawingData(Payload p){
         int x = p.getXCoordinate();
