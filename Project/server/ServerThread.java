@@ -10,10 +10,15 @@ public class ServerThread extends Thread {
     private Socket client;
     private String clientName;
     private boolean isRunning = false;
+    private boolean isReady = false;
     private ObjectOutputStream out;// exposed here for send()
     // private Server server;// ref to our server so we can call methods on it
     // more easily
     private Room currentRoom;
+
+    public void setReady(boolean ready) {
+        isReady = ready;
+    }
 
     private void info(String message) {
         System.out.println(String.format("Thread[%s]: %s", getId(), message));
@@ -149,5 +154,9 @@ public class ServerThread extends Thread {
             info("Client already closed");
         }
         info("Thread cleanup() complete");
+    }
+
+    public boolean isReady() {
+        return false;
     }
 }

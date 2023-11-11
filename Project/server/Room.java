@@ -10,11 +10,12 @@ public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
+	private List<ServerThread> drawingOrder = new ArrayList<ServerThread>();
 	private boolean isRunning = false;
 	private boolean isRoundActive = false;
 	private int roundTimeInSeconds = 30;
 	private Thread roundThread;
-
+	private boolean isGameRunning = false;
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -28,6 +29,7 @@ public class Room implements AutoCloseable{
 	private final static String DRAWING = "drawing";
 	private final static String GAME_OVER = "gameover";
 	private final static String GUESS = "guess";
+	private final static String READY = "ready";
 	
 	public void startRound(){
 		if(!isRoundActive){
@@ -74,6 +76,39 @@ public class Room implements AutoCloseable{
     return words.get(randomIndex);
 }
 
+private void handleReady(ServerThread client) {
+    client.setReady(true);
+    if (areAllClientsReady()) {
+        startGame();
+    }
+}
+
+
+private boolean areAllClientsReady() {
+    for (ServerThread client : clients) {
+        if (!client.isReady()) return false;
+    }
+    return true;
+}
+
+private void determineDrawingOrder(){
+	sendMessage(null, "Drawing order:");
+        for (int i = 0; i < drawingOrder.size(); i++) {
+            sendMessage(null, (i + 1) + ". " + drawingOrder.get(i).getClientName());
+        }
+}
+
+public void startGame() {
+	if (!isGameRunning && areAllClientsReady()) {
+		isGameRunning = true;
+		sendMessage(null, "Game started! Let the fun begin!");
+		determineDrawingOrder();
+		startRound();
+	} else {
+		sendMessage(null, "Not all players are ready. Cannot start the game.");
+	}
+}
+
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
@@ -96,6 +131,7 @@ public class Room implements AutoCloseable{
 			info("Attempting to add a client that already exists");
 		} else {
 			clients.add(client);
+			drawingOrder.add(client);
 			new Thread() {
 				@Override
 				public void run() {
@@ -117,6 +153,7 @@ public class Room implements AutoCloseable{
 			return;
 		}
 		clients.remove(client);
+		drawingOrder.remove(client);
 		// we don't need to broadcast it to the server
 		// only to our own Room
 		if (clients.size() > 0) {
@@ -158,6 +195,11 @@ public class Room implements AutoCloseable{
 						Room.disconnectClient(client, this);
 						break;
 					case START_GAME:
+						if(areAllClientsReady()){
+							startGame();
+						} else {
+							sendMessage(null, "Not all Players are ready.");
+						}
 						break;
 					case START_ROUND:
 						startRound();
@@ -168,8 +210,12 @@ public class Room implements AutoCloseable{
 					case GUESS:
 						break;
 					case GAME_OVER:
+						handleEndOfGame();
 						break;
 					case DRAWING:
+						break;
+					case READY:
+						handleReady(client);
 						break;
 					default:
 						wasCommand = false;

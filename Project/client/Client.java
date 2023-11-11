@@ -36,6 +36,14 @@ public class Client {
 
     }
 
+    private void sendReadyStatus(boolean isReady) throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.READY);
+        p.setClientName(clientName);
+        p.setReadyStatus(isReady);
+        out.writeObject(p);
+    }
+    
     private boolean connect(String address, int port) {
         try {
             server = new Socket(address, port);
@@ -75,6 +83,10 @@ public class Client {
         return false;
     }
 
+    private boolean isReady(String text){
+        return text.equalsIgnoreCase("/ready");
+    }
+
     private boolean processCommand(String text) {
         if (isConnection(text)) {
             if (clientName.isBlank()) {
@@ -89,8 +101,23 @@ public class Client {
             return true;
         } else if (isName(text)) {
             return true;
-        }
+        } else if (isReady(text)) {
+            try {
+                    sendReady();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                    return true;
+            }
         return false;
+    }
+
+
+    private void sendReady() throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.READY);
+        p.setClientName(clientName);
+        out.writeObject(p);
     }
 
     // Send methods
