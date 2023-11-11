@@ -36,13 +36,14 @@ public class Client {
 
     }
 
-    private void sendReadyStatus(boolean isReady) throws IOException {
+    /*private void sendReadyStatus(boolean isReady) throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.READY);
         p.setClientName(clientName);
         p.setReadyStatus(isReady);
         out.writeObject(p);
     }
+    */
     
     private boolean connect(String address, int port) {
         try {

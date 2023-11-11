@@ -7,7 +7,7 @@ import java.util.List;
 import Project.common.DrawingOrder;
 import Project.common.Payload;
 import Project.common.WordList;
-
+import Project.common.Grid;
 public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
@@ -20,6 +20,8 @@ public class Room implements AutoCloseable{
 	private ServerThread currentDrawer;
 	private boolean isDrawingTurn;
 	private DrawingOrder drawingOrder = new DrawingOrder();
+	private Grid grid;
+	
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -133,9 +135,20 @@ public class Room implements AutoCloseable{
 		}
 	}
 
+	public Grid getGrid(){
+		return grid;
+	}
+
+	public void clearGrid(){
+		grid.clearBoard();
+		sendMessage(null, "The Board has been Cleared.");
+
+	}
+
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
+		this.grid = new Grid();
 	}
 
 	private void info(String message) {
