@@ -4,18 +4,22 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import Project.common.DrawingOrder;
+import Project.common.Payload;
 import Project.common.WordList;
 
 public class Room implements AutoCloseable{
 	protected static Server server;// used to refer to accessible server functions
 	private String name;
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
-	private List<ServerThread> drawingOrder = new ArrayList<ServerThread>();
 	private boolean isRunning = false;
 	private boolean isRoundActive = false;
 	private int roundTimeInSeconds = 30;
 	private Thread roundThread;
 	private boolean isGameRunning = false;
+	private ServerThread currentDrawer;
+	private boolean isDrawingTurn;
+	private DrawingOrder drawingOrder = new DrawingOrder();
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -36,13 +40,17 @@ public class Room implements AutoCloseable{
 			isRoundActive = true;
 			roundThread = new Thread(() -> {
 				try {
-					sendMessage(null, "Round started! Guess the word.");
-	
+					currentDrawer = drawingOrder.getNextDrawer(); 
+					sendMessage(null, "Round started!" + currentDrawer.getClientName() + "is drawing.");
+					
+					isDrawingTurn = true;
 					for (int seconds = roundTimeInSeconds; seconds > 0; seconds--) {
 						sendMessage(null, "Time left: " + seconds + " seconds.");
 						Thread.sleep(1000);
 					}
 					sendMessage(null, "Round ended! The word was: " + getRandomWord());
+					isDrawingTurn = false;
+					currentDrawer = null;
 					endRound();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -52,6 +60,7 @@ public class Room implements AutoCloseable{
 		}
 	}
 	
+
 	public void endRound(){
 		isRoundActive = false;
 		if(roundThread != null){
@@ -70,6 +79,8 @@ public class Room implements AutoCloseable{
 	}
 
 
+	
+
 	private String getRandomWord() {
     List<String> words = WordList.getWordList();
     int randomIndex = (int) (Math.random() * words.size());
@@ -83,6 +94,28 @@ private void handleReady(ServerThread client) {
     }
 }
 
+private void handleDrawing(ServerThread client, String[] commandParts){
+	if (isDrawingTurn && client == currentDrawer) {
+        String drawingAction = String.join(" ", commandParts).substring(DRAWING.length() + 1);
+        sendMessage(null, currentDrawer.getClientName() + " is drawing: " + drawingAction);
+        informGuessingClients(currentDrawer, drawingAction);
+    } else {
+        sendMessage(client, "It's not your turn to draw.");
+    }
+}
+
+private void informGuessingClients(ServerThread drawingPlayer, String drawingAction) {
+    Iterator<ServerThread> iter = clients.iterator();
+    while (iter.hasNext()) {
+        ServerThread client = iter.next();
+        if (client != drawingPlayer) {
+            boolean messageSent = client.sendMessage("Server", drawingPlayer.getClientName() + " is drawing: " + drawingAction);
+            if (!messageSent) {
+                handleDisconnect(iter, client);
+            }
+        }
+    }
+}
 
 private boolean areAllClientsReady() {
     for (ServerThread client : clients) {
@@ -91,18 +124,14 @@ private boolean areAllClientsReady() {
     return true;
 }
 
-private void determineDrawingOrder(){
-	sendMessage(null, "Drawing order:");
-        for (int i = 0; i < drawingOrder.size(); i++) {
-            sendMessage(null, (i + 1) + ". " + drawingOrder.get(i).getClientName());
-        }
-}
+
+
 
 public void startGame() {
 	if (!isGameRunning && areAllClientsReady()) {
 		isGameRunning = true;
 		sendMessage(null, "Game started! Let the fun begin!");
-		determineDrawingOrder();
+		
 		startRound();
 	} else {
 		sendMessage(null, "Not all players are ready. Cannot start the game.");
@@ -131,7 +160,7 @@ public void startGame() {
 			info("Attempting to add a client that already exists");
 		} else {
 			clients.add(client);
-			drawingOrder.add(client);
+			drawingOrder.addClient(client);
 			new Thread() {
 				@Override
 				public void run() {
@@ -153,7 +182,6 @@ public void startGame() {
 			return;
 		}
 		clients.remove(client);
-		drawingOrder.remove(client);
 		// we don't need to broadcast it to the server
 		// only to our own Room
 		if (clients.size() > 0) {
@@ -213,6 +241,7 @@ public void startGame() {
 						handleEndOfGame();
 						break;
 					case DRAWING:
+						handleDrawing(client, comm2);
 						break;
 					case READY:
 						handleReady(client);
