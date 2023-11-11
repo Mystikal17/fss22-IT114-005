@@ -21,7 +21,7 @@ public class Room implements AutoCloseable{
 	private boolean isDrawingTurn;
 	private DrawingOrder drawingOrder = new DrawingOrder();
 	private Grid grid;
-	
+
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -296,6 +296,7 @@ public class Room implements AutoCloseable{
 			// it was a command, don't broadcast
 			return;
 		}
+		
 		
 		String from = (sender == null ? "Room" : sender.getClientName());
 		Iterator<ServerThread> iter = clients.iterator();

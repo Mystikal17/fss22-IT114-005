@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import Project.common.Grid;
 import Project.common.Payload;
 import Project.common.PayloadType;
 
@@ -227,6 +228,7 @@ public class Client {
         }
     }
 
+    
     public void start() throws IOException {
         listenForKeyboard();
     }
