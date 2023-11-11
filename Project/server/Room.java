@@ -32,7 +32,6 @@ public class Room implements AutoCloseable{
 	private final static String ROUND_OVER = "roundover";
 	private final static String DRAWING = "drawing";
 	private final static String GAME_OVER = "gameover";
-	private final static String GUESS = "guess";
 	private final static String READY = "ready";
 	
 	public void startRound(){
@@ -59,7 +58,6 @@ public class Room implements AutoCloseable{
 			roundThread.start();
 		}
 	}
-	
 
 	public void endRound(){
 		isRoundActive = false;
@@ -78,65 +76,62 @@ public class Room implements AutoCloseable{
 		close();
 	}
 
-
-	
-
 	private String getRandomWord() {
-    List<String> words = WordList.getWordList();
-    int randomIndex = (int) (Math.random() * words.size());
-    return words.get(randomIndex);
-}
-
-private void handleReady(ServerThread client) {
-    client.setReady(true);
-    if (areAllClientsReady()) {
-        startGame();
-    }
-}
-
-private void handleDrawing(ServerThread client, String[] commandParts){
-	if (isDrawingTurn && client == currentDrawer) {
-        String drawingAction = String.join(" ", commandParts).substring(DRAWING.length() + 1);
-        sendMessage(null, currentDrawer.getClientName() + " is drawing: " + drawingAction);
-        informGuessingClients(currentDrawer, drawingAction);
-    } else {
-        sendMessage(client, "It's not your turn to draw.");
-    }
-}
-
-private void informGuessingClients(ServerThread drawingPlayer, String drawingAction) {
-    Iterator<ServerThread> iter = clients.iterator();
-    while (iter.hasNext()) {
-        ServerThread client = iter.next();
-        if (client != drawingPlayer) {
-            boolean messageSent = client.sendMessage("Server", drawingPlayer.getClientName() + " is drawing: " + drawingAction);
-            if (!messageSent) {
-                handleDisconnect(iter, client);
-            }
-        }
-    }
-}
-
-private boolean areAllClientsReady() {
-    for (ServerThread client : clients) {
-        if (!client.isReady()) return false;
-    }
-    return true;
-}
-
-
-
-
-public void startGame() {
-	if (!isGameRunning && areAllClientsReady()) {
-		isGameRunning = true;
-		sendMessage(null, "Game started! Let the fun begin!");
-		
-		startRound();
-	} else {
-		sendMessage(null, "Not all players are ready. Cannot start the game.");
+    	List<String> words = WordList.getWordList();
+    	int randomIndex = (int) (Math.random() * words.size());
+    	return words.get(randomIndex);
 	}
-}
+
+	private void handleReady(ServerThread client) {
+    	client.setReady(true);
+    	if (areAllClientsReady()) {
+       		startGame();
+    	}
+	}
+
+	private void handleDrawing(ServerThread client, String[] commandParts){
+		if (isDrawingTurn && client == currentDrawer) {
+        	String drawingAction = String.join(" ", commandParts).substring(DRAWING.length() + 1);
+        	sendMessage(null, currentDrawer.getClientName() + " is drawing: " + drawingAction);
+        	informGuessingClients(currentDrawer, drawingAction);
+    	} else {
+        	sendMessage(client, "It's not your turn to draw.");
+    	}
+	}
+
+	private void informGuessingClients(ServerThread drawingPlayer, String drawingAction) {
+    	Iterator<ServerThread> iter = clients.iterator();
+    	while (iter.hasNext()) {
+        	ServerThread client = iter.next();
+        	if (client != drawingPlayer) {
+            	boolean messageSent = client.sendMessage("Server", drawingPlayer.getClientName() + " is drawing: " + drawingAction);
+            	if (!messageSent) {
+                	handleDisconnect(iter, client);
+            	}
+        	}
+    	}
+	}
+
+	private boolean areAllClientsReady() {
+    	for (ServerThread client : clients) {
+       		if (!client.isReady()) return false;
+    	}
+    return true;
+	}
+
+
+
+
+	public void startGame() {
+		if (!isGameRunning && areAllClientsReady()) {
+			isGameRunning = true;
+			sendMessage(null, "Game started! Let the fun begin!");
+		
+			startRound();
+		} else {
+			sendMessage(null, "Not all players are ready. Cannot start the game.");
+		}
+	}
 
 	public Room(String name) {
 		this.name = name;
@@ -234,8 +229,6 @@ public void startGame() {
 						break;
 					case ROUND_OVER:
 						endRound();
-						break;
-					case GUESS:
 						break;
 					case GAME_OVER:
 						handleEndOfGame();
