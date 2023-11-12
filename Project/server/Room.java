@@ -49,6 +49,7 @@ public class Room implements AutoCloseable{
 						if (areAllClientsGuessed()) {
 							sendMessage(null, "All players have guessed correctly!");
 							endRound();
+							startRound(); //automatically goes to the next round.
 							return; // Exit the thread
 						}
 						Thread.sleep(1000);
@@ -123,7 +124,9 @@ public class Room implements AutoCloseable{
             	if (!messageSent) {
                 	handleDisconnect(iter, client);
             	}
-        	}
+        	} else {
+				client.sendMessage("Server", "The word is: " + getRandomWord());
+			}
     	}
 	}
 
