@@ -11,6 +11,8 @@ public class ServerThread extends Thread {
     private String clientName;
     private boolean isRunning = false;
     private boolean isReady = false;
+    private boolean guessedCorrectly = false;
+
     private ObjectOutputStream out;// exposed here for send()
     // private Server server;// ref to our server so we can call methods on it
     // more easily
@@ -18,6 +20,14 @@ public class ServerThread extends Thread {
 
     public void setReady(boolean ready) {
         isReady = ready;
+    }
+
+    public void setGuessedCorrectly(boolean guessedCorrectly) {
+        this.guessedCorrectly = guessedCorrectly;
+    }
+
+    public boolean hasGuessedCorrectly() {
+        return guessedCorrectly;
     }
 
     private void info(String message) {

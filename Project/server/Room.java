@@ -46,7 +46,11 @@ public class Room implements AutoCloseable{
 					
 					isDrawingTurn = true;
 					for (int seconds = roundTimeInSeconds; seconds > 0; seconds--) {
-						sendMessage(null, "Time left: " + seconds + " seconds.");
+						if (areAllClientsGuessed()) {
+							sendMessage(null, "All players have guessed correctly!");
+							endRound();
+							return; // Exit the thread
+						}
 						Thread.sleep(1000);
 					}
 					sendMessage(null, "Round ended! The word was: " + getRandomWord());
@@ -59,6 +63,15 @@ public class Room implements AutoCloseable{
 			});
 			roundThread.start();
 		}
+	}
+
+	private boolean areAllClientsGuessed() {
+		for (ServerThread client : clients) {
+			if (!client.hasGuessedCorrectly()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public void endRound(){
