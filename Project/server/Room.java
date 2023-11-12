@@ -137,9 +137,6 @@ public class Room implements AutoCloseable{
     return true;
 	}
 
-
-
-
 	public void startGame() {
 		if (!isGameRunning && areAllClientsReady()) {
 			isGameRunning = true;
