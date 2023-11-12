@@ -6,6 +6,15 @@ public class Payload implements Serializable {
     private static final long serialVersionUID = 1L;//change this if the class changes
     private boolean readyStatus;
     private PayloadType payloadType;
+    private char[][] grid;
+
+    public char[][] getGrid() {
+        return grid;
+    }
+
+    public void setGrid(char[][] grid) {
+        this.grid = grid;
+    }
     public PayloadType getPayloadType() {
         return payloadType;
     }

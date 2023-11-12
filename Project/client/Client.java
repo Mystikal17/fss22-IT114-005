@@ -23,6 +23,7 @@ public class Client {
     private Thread inputThread;
     private Thread fromServerThread;
     private String clientName = "";
+    private char[][] clientGrid;
 
     public Client() {
         System.out.println("");
@@ -222,12 +223,24 @@ public class Client {
                         p.getClientName(),
                         p.getMessage()));
                 break;
+            case GRID:
+                clientGrid = p.getGrid();
+                printGrid();
             default:
                 break;
 
         }
     }
 
+    private void printGrid() {
+        System.out.println("Client-side grid:");
+        for (int i = 0; i < Grid.ROWS; i++) {
+            for (int j = 0; j < Grid.COLS; j++) {
+                System.out.print(clientGrid[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
     
     public void start() throws IOException {
         listenForKeyboard();

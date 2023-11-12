@@ -6,6 +6,7 @@ import java.util.List;
 
 import Project.common.DrawingOrder;
 import Project.common.Payload;
+import Project.common.PayloadType;
 import Project.common.WordList;
 import Project.common.Grid;
 public class Room implements AutoCloseable{
@@ -309,7 +310,7 @@ public class Room implements AutoCloseable{
 			// it was a command, don't broadcast
 			return;
 		}
-		
+	
 		
 		String from = (sender == null ? "Room" : sender.getClientName());
 		Iterator<ServerThread> iter = clients.iterator();
