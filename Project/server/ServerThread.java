@@ -10,25 +10,10 @@ public class ServerThread extends Thread {
     private Socket client;
     private String clientName;
     private boolean isRunning = false;
-    private boolean isReady = false;
-    private boolean guessedCorrectly = false;
-
     private ObjectOutputStream out;// exposed here for send()
     // private Server server;// ref to our server so we can call methods on it
     // more easily
     private Room currentRoom;
-
-    public void setReady(boolean ready) {
-        isReady = ready;
-    }
-
-    public void setGuessedCorrectly(boolean guessedCorrectly) {
-        this.guessedCorrectly = guessedCorrectly;
-    }
-
-    public boolean hasGuessedCorrectly() {
-        return guessedCorrectly;
-    }
 
     private void info(String message) {
         System.out.println(String.format("Thread[%s]: %s", getId(), message));
@@ -139,7 +124,7 @@ public class ServerThread extends Thread {
             case CONNECT:
                 setClientName(p.getClientName());
                 break;
-            case DISCONNECT://TBD
+            case DISCONNECT:
                 break;
             case MESSAGE:
                 if (currentRoom != null) {
@@ -148,6 +133,23 @@ public class ServerThread extends Thread {
                     // TODO migrate to lobby
                     Room.joinRoom("lobby", this);
                 }
+                break;
+            case START_GAME:
+            if (currentRoom != null) {
+                currentRoom.startGame();
+            }
+                break;
+            case GAME_OVER:
+            if (currentRoom != null) {
+                currentRoom.handleEndOfGame();
+            }
+                break;
+            case GRID:
+                break;
+            case ROUND_OVER:
+            if (currentRoom != null) {
+                currentRoom.endRound();
+            }
                 break;
             default:
                 break;
@@ -164,9 +166,5 @@ public class ServerThread extends Thread {
             info("Client already closed");
         }
         info("Thread cleanup() complete");
-    }
-
-    public boolean isReady() {
-        return false;
     }
 }

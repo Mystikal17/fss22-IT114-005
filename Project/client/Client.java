@@ -23,7 +23,6 @@ public class Client {
     private Thread inputThread;
     private Thread fromServerThread;
     private String clientName = "";
-    private char[][] clientGrid;
 
     public Client() {
         System.out.println("");
@@ -33,20 +32,12 @@ public class Client {
         if (server == null) {
             return false;
         }
-
+   
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
 
     }
 
-    /*private void sendReadyStatus(boolean isReady) throws IOException {
-        Payload p = new Payload();
-        p.setPayloadType(PayloadType.READY);
-        p.setClientName(clientName);
-        p.setReadyStatus(isReady);
-        out.writeObject(p);
-    }
-    */
-    
+
     private boolean connect(String address, int port) {
         try {
             server = new Socket(address, port);
@@ -66,6 +57,7 @@ public class Client {
     }
 
     private boolean isConnection(String text) {
+        // https://www.w3schools.com/java/java_regex.asp
         return text.matches(ipAddressPattern)
                 || text.matches(localhostPattern);
     }
@@ -86,16 +78,59 @@ public class Client {
         return false;
     }
 
-    private boolean isReady(String text){
-        return text.equalsIgnoreCase("/ready");
+    private void sendStartGameCommand() {
+        try {
+            Payload p = new Payload();
+            p.setPayloadType(PayloadType.START_GAME); // Add START_GAME to PayloadType enum
+            p.setClientName(clientName);
+            out.writeObject(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void sendGameOverCommand() {
+        try {
+            Payload p = new Payload();
+            p.setPayloadType(PayloadType.GAME_OVER); // Add GAME_OVER to PayloadType enum
+            p.setClientName(clientName);
+            out.writeObject(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void sendRoundOverCommand() {
+        try {
+            Payload p = new Payload();
+            p.setPayloadType(PayloadType.ROUND_OVER); // Add ROUND_OVER to PayloadType enum
+            p.setClientName(clientName);
+            out.writeObject(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    private boolean isStartGameCommand(String text) {
+        return text.equalsIgnoreCase("/startgame");
+    }
+    
+    private boolean isGameOverCommand(String text) {
+        return text.equalsIgnoreCase("/gameover");
+    }
+    
+    private boolean isRoundOverCommand(String text) {
+        return text.equalsIgnoreCase("/roundover");
+    }
     private boolean processCommand(String text) {
         if (isConnection(text)) {
             if (clientName.isBlank()) {
                 System.out.println("You must set your name before you can connect via: /name your_name");
                 return true;
             }
+            // replaces multiple spaces with single space
+            // splits on the space after connect (gives us host and port)
+            // splits on : to get host as index 0 and port as index 1
             String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
             connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
             return true;
@@ -104,23 +139,17 @@ public class Client {
             return true;
         } else if (isName(text)) {
             return true;
-        } else if (isReady(text)) {
-            try {
-                    sendReady();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                    return true;
-            }
+        } else if (isStartGameCommand(text)) {
+            sendStartGameCommand();
+            return true;
+        } else if (isGameOverCommand(text)) {
+            sendGameOverCommand();
+            return true;
+        } else if (isRoundOverCommand(text)) {
+            sendRoundOverCommand();
+            return true;
+        }
         return false;
-    }
-
-
-    private void sendReady() throws IOException {
-        Payload p = new Payload();
-        p.setPayloadType(PayloadType.READY);
-        p.setClientName(clientName);
-        out.writeObject(p);
     }
 
     // Send methods
@@ -138,6 +167,8 @@ public class Client {
         p.setClientName(clientName);
         out.writeObject(p);
     }
+
+        
 
     // end send methods
     private void listenForKeyboard() {
@@ -223,25 +254,24 @@ public class Client {
                         p.getClientName(),
                         p.getMessage()));
                 break;
+                case START_GAME:
+               
+                break;
+            case GAME_OVER:
+                
+                break;
             case GRID:
-                clientGrid = p.getGrid();
-                printGrid();
+                
+                break;
+            case ROUND_OVER:
+                
+                break;
             default:
                 break;
 
         }
     }
 
-    private void printGrid() {
-        System.out.println("Client-side grid:");
-        for (int i = 0; i < Grid.ROWS; i++) {
-            for (int j = 0; j < Grid.COLS; j++) {
-                System.out.print(clientGrid[i][j] + " ");
-            }
-            System.out.println();
-        }
-    }
-    
     public void start() throws IOException {
         listenForKeyboard();
     }

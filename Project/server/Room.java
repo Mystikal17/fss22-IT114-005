@@ -14,155 +14,22 @@ public class Room implements AutoCloseable{
 	private String name;
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
 	private boolean isRunning = false;
-	private boolean isRoundActive = false;
-	private int roundTimeInSeconds = 30;
-	private Thread roundThread;
-	private boolean isGameRunning = false;
-	private ServerThread currentDrawer;
-	private boolean isDrawingTurn;
-	private DrawingOrder drawingOrder = new DrawingOrder();
-	private Grid grid;
-
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
 	private final static String JOIN_ROOM = "joinroom";
 	private final static String DISCONNECT = "disconnect";
 	private final static String LOGOUT = "logout";
-	private final static String LOGOFF = "logoff";		 
+	private final static String LOGOFF = "logoff";
 	private final static String START_GAME = "startgame";
-	private final static String START_ROUND = "startround";
 	private final static String ROUND_OVER = "roundover";
-	private final static String DRAWING = "drawing";
 	private final static String GAME_OVER = "gameover";
-	private final static String READY = "ready";
-	
-	public void startRound(){
-		if(!isRoundActive){
-			isRoundActive = true;
-			roundThread = new Thread(() -> {
-				try {
-					currentDrawer = drawingOrder.getNextDrawer(); 
-					sendMessage(null, "Round started!" + currentDrawer.getClientName() + "is drawing.");
-					
-					isDrawingTurn = true;
-					for (int seconds = roundTimeInSeconds; seconds > 0; seconds--) {
-						if (areAllClientsGuessed()) {
-							sendMessage(null, "All players have guessed correctly!");
-							endRound();
-							startRound(); //automatically goes to the next round.
-							return; // Exit the thread
-						}
-						Thread.sleep(1000);
-					}
-					sendMessage(null, "Round ended! The word was: " + getRandomWord());
-					isDrawingTurn = false;
-					currentDrawer = null;
-					endRound();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			});
-			roundThread.start();
-		}
-	}
-
-	private boolean areAllClientsGuessed() {
-		for (ServerThread client : clients) {
-			if (!client.hasGuessedCorrectly()) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public void endRound(){
-		isRoundActive = false;
-		if(roundThread != null){
-			roundThread.interrupted();
-		}
-		if (!WordList.getWordList().isEmpty()) {
-			startRound();
-		} else {
-			handleEndOfGame();
-		}
-	}
-	
-	private void handleEndOfGame() {
-		sendMessage(null, "Game over! Thank you for playing.");
-		close();
-	}
-
-	private String getRandomWord() {
-    	List<String> words = WordList.getWordList();
-    	int randomIndex = (int) (Math.random() * words.size());
-    	return words.get(randomIndex);
-	}
-
-	private void handleReady(ServerThread client) {
-    	client.setReady(true);
-    	if (areAllClientsReady()) {
-       		startGame();
-    	}
-	}
-
-	private void handleDrawing(ServerThread client, String[] commandParts){
-		if (isDrawingTurn && client == currentDrawer) {
-        	String drawingAction = String.join(" ", commandParts).substring(DRAWING.length() + 1);
-        	sendMessage(null, currentDrawer.getClientName() + " is drawing: " + drawingAction);
-        	informGuessingClients(currentDrawer, drawingAction);
-    	} else {
-        	sendMessage(client, "It's not your turn to draw.");
-    	}
-	}
-
-	private void informGuessingClients(ServerThread drawingPlayer, String drawingAction) {
-    	Iterator<ServerThread> iter = clients.iterator();
-    	while (iter.hasNext()) {
-        	ServerThread client = iter.next();
-        	if (client != drawingPlayer) {
-            	boolean messageSent = client.sendMessage("Server", drawingPlayer.getClientName() + " is drawing: " + drawingAction);
-            	if (!messageSent) {
-                	handleDisconnect(iter, client);
-            	}
-        	} else {
-				client.sendMessage("Server", "The word is: " + getRandomWord());
-			}
-    	}
-	}
-
-	private boolean areAllClientsReady() {
-    	for (ServerThread client : clients) {
-       		if (!client.isReady()) return false;
-    	}
-    return true;
-	}
-
-	public void startGame() {
-		if (!isGameRunning && areAllClientsReady()) {
-			isGameRunning = true;
-			sendMessage(null, "Game started! Let the fun begin!");
 		
-			startRound();
-		} else {
-			sendMessage(null, "Not all players are ready. Cannot start the game.");
-		}
-	}
 
-	public Grid getGrid(){
-		return grid;
-	}
-
-	public void clearGrid(){
-		grid.clearBoard();
-		sendMessage(null, "The Board has been Cleared.");
-
-	}
 
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
-		this.grid = new Grid();
 	}
 
 	private void info(String message) {
@@ -182,10 +49,12 @@ public class Room implements AutoCloseable{
 			info("Attempting to add a client that already exists");
 		} else {
 			clients.add(client);
-			drawingOrder.addClient(client);
 			new Thread() {
 				@Override
 				public void run() {
+					// slight delay to let potentially new client to finish
+					// binding input/output streams
+					// comment out the Thread.sleep to see what happens
 					try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
@@ -245,26 +114,13 @@ public class Room implements AutoCloseable{
 						Room.disconnectClient(client, this);
 						break;
 					case START_GAME:
-						if(areAllClientsReady()){
-							startGame();
-						} else {
-							sendMessage(null, "Not all Players are ready.");
-						}
-						break;
-					case START_ROUND:
-						startRound();
-						break;
-					case ROUND_OVER:
-						endRound();
+						startGame();
 						break;
 					case GAME_OVER:
 						handleEndOfGame();
 						break;
-					case DRAWING:
-						handleDrawing(client, comm2);
-						break;
-					case READY:
-						handleReady(client);
+					case ROUND_OVER:
+						endRound();
 						break;
 					default:
 						wasCommand = false;
@@ -310,7 +166,6 @@ public class Room implements AutoCloseable{
 			// it was a command, don't broadcast
 			return;
 		}
-	
 		
 		String from = (sender == null ? "Room" : sender.getClientName());
 		Iterator<ServerThread> iter = clients.iterator();
@@ -321,6 +176,8 @@ public class Room implements AutoCloseable{
 				handleDisconnect(iter, client);
 			}
 		}
+
+	
 	}
 	protected synchronized void sendConnectionStatus(ServerThread sender, boolean isConnected){
 		Iterator<ServerThread> iter = clients.iterator();
@@ -344,4 +201,37 @@ public class Room implements AutoCloseable{
 		isRunning = false;
 		clients = null;
 	}
+
+	private boolean isRoundOver = false;
+	public void endRound() {
+		if (isGameStarted && !isRoundOver) {
+            isRoundOver = true;
+            System.out.println("Round over!");
+            // Implement your round end logic here
+        } else {
+            System.out.println("No active round to end.");
+        }
+	}
+
+
+	public void handleEndOfGame() {
+		if (isGameStarted) {
+            isGameStarted = false;
+            System.out.println("Game over!");
+            // Implement your end of game logic here
+        } else {
+            System.out.println("No active game to end.");
+        }
+	}
+
+	private boolean isGameStarted = false;
+    public void startGame() {
+		if (!isGameStarted) {
+            isGameStarted = true;
+            System.out.println("The game has started!");
+            // Implement your game start logic here
+        } else {
+            System.out.println("The game is already in progress.");
+        }
+    }
 }

@@ -44,7 +44,6 @@ public class Server {
             System.out.println("closing server socket");
         }
     }
-
     private Room getRoom(String roomName) {
         for (int i = 0, l = rooms.size(); i < l; i++) {
             if (rooms.get(i).getName().equalsIgnoreCase(roomName)) {
@@ -93,9 +92,9 @@ public class Server {
 
     protected synchronized void broadcast(String message) {
         if (processCommand(message)) {
+
             return;
         }
-
         // loop over rooms and send out the message
         Iterator<Room> it = rooms.iterator();
         while (it.hasNext()) {
