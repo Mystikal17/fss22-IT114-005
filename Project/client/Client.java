@@ -78,7 +78,7 @@ public class Client {
     private void sendStartGameCommand() {
         try {
             Payload p = new Payload();
-            p.setPayloadType(PayloadType.START_GAME); // Add START_GAME to PayloadType enum
+            p.setPayloadType(PayloadType.START_GAME); 
             p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {
@@ -89,7 +89,7 @@ public class Client {
     private void sendGameOverCommand() {
         try {
             Payload p = new Payload();
-            p.setPayloadType(PayloadType.GAME_OVER); // Add GAME_OVER to PayloadType enum
+            p.setPayloadType(PayloadType.GAME_OVER); 
             p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {
@@ -100,7 +100,7 @@ public class Client {
     private void sendRoundOverCommand() {
         try {
             Payload p = new Payload();
-            p.setPayloadType(PayloadType.ROUND_OVER); // Add ROUND_OVER to PayloadType enum
+            p.setPayloadType(PayloadType.ROUND_OVER); 
             p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {

@@ -238,7 +238,6 @@ public class Room implements AutoCloseable{
                 String guesserMessage = "Guess the word: " + getBlankWord(nextWord);
                 sendMessage(drawer, guesserMessage);
             }
-            scheduleNextRound();
         } else {
             handleEndOfGame();
         }
@@ -273,7 +272,8 @@ public class Room implements AutoCloseable{
 	private void startNextRound() {
         isRoundOver = false;
 		correctGuessCount = 0;
-        endRound();
+		scheduleNextRound();
+        
     }
 	
 	public void handleEndOfGame() {
