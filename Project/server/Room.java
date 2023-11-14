@@ -1,8 +1,11 @@
 package Project.server;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import Project.common.DrawingOrder;
 import Project.common.Payload;
@@ -14,6 +17,14 @@ public class Room implements AutoCloseable{
 	private String name;
 	private List<ServerThread> clients = new ArrayList<ServerThread>();
 	private boolean isRunning = false;
+	private List<String> wordList;
+    private int currentWordIndex;
+	private Timer roundTimer;
+    private int correctGuessCount = 0;
+	private ServerThread drawer;
+	private Grid grid;
+	
+
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
 	private final static String CREATE_ROOM = "createroom";
@@ -30,6 +41,10 @@ public class Room implements AutoCloseable{
 	public Room(String name) {
 		this.name = name;
 		isRunning = true;
+		wordList = WordList.getWordList();
+        Collections.shuffle(wordList); 
+        currentWordIndex = 0;
+		this.grid = new Grid();
 	}
 
 	private void info(String message) {
@@ -195,43 +210,116 @@ public class Room implements AutoCloseable{
 		checkClients();
 		sendMessage(null, client.getClientName() + " disconnected");
 	}
+	
 	public void close() {
-		server.removeRoom(this);
-		server = null;
-		isRunning = false;
-		clients = null;
-	}
-
+		if (roundTimer != null) {
+            roundTimer.cancel();
+            roundTimer = null;
+        }
+        server.removeRoom(this);
+        server = null;
+        isRunning = false;
+        clients = null;
+    }
+	
 	private boolean isRoundOver = false;
 	public void endRound() {
 		if (isGameStarted && !isRoundOver) {
             isRoundOver = true;
-            System.out.println("Round over!");
-            // Implement your round end logic here
+            String endOfRoundMessage = "End of Round. Get ready for the next one!";
+    		sendMessage(null, endOfRoundMessage);
+        } 
+		if (currentWordIndex < wordList.size()) {
+            String nextWord = wordList.get(currentWordIndex);
+            currentWordIndex++;
+            drawer = selectDrawer();
+            if (drawer != null) {
+                String drawerMessage = "You are the drawer! The word to draw is: " + nextWord;
+                drawer.sendMessage("Server", drawerMessage);
+                String guesserMessage = "Guess the word: " + getBlankWord(nextWord);
+                sendMessage(drawer, guesserMessage);
+            }
+            scheduleNextRound();
         } else {
-            System.out.println("No active round to end.");
+            handleEndOfGame();
         }
+	
 	}
 
+	private String getBlankWord(String word) {
+		StringBuilder blankWord = new StringBuilder();
+		for (int i = 0; i < word.length(); i++) {
+			char currentChar = word.charAt(i);
+			if (Character.isLetter(currentChar)) {
+				// Replace letters with underscores
+				blankWord.append("_");
+			} else {
+				// Keep non-letter characters as they are (e.g., spaces, punctuation)
+				blankWord.append(currentChar);
+			}
+		}
+		return blankWord.toString();
+	}
 
+	private void scheduleNextRound() {
+        roundTimer = new Timer();
+        roundTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                startNextRound();
+            }
+        }, 5000); 
+    }
+
+	private void startNextRound() {
+        isRoundOver = false;
+		correctGuessCount = 0;
+        endRound();
+    }
+	
 	public void handleEndOfGame() {
 		if (isGameStarted) {
             isGameStarted = false;
-            System.out.println("Game over!");
-            // Implement your end of game logic here
-        } else {
-            System.out.println("No active game to end.");
-        }
+            String endOfGameMessage = "Game Over! Thank you for playing!";
+    		sendMessage(null, endOfGameMessage);
+        } 
 	}
 
 	private boolean isGameStarted = false;
     public void startGame() {
 		if (!isGameStarted) {
             isGameStarted = true;
-            System.out.println("The game has started!");
-            // Implement your game start logic here
-        } else {
-            System.out.println("The game is already in progress.");
+            String startGameMessage = "The game has started!";
+    		sendMessage(null, startGameMessage);
+        } 
+    }
+
+	public synchronized void playerGuessedCorrectly() {
+        correctGuessCount++;
+        if (correctGuessCount == clients.size()) {
+            if (roundTimer != null) {
+                roundTimer.cancel();
+                roundTimer = null;
+            }
+            startNextRound();
         }
     }
+
+	
+	private ServerThread selectDrawer() {
+        if (clients.size() > 0) {
+            Collections.shuffle(clients);
+            return clients.get(0);
+        }
+        return null;
+		
+    }
+
+	public synchronized void updateGrid(Grid newGrid) {
+		grid.setBoard(newGrid.getBoard());
+		sendMessage(null, "Grid updated!"); 
+	}
+	
 }
+
+           

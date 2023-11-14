@@ -25,6 +25,10 @@ public class Grid implements Serializable {
         return board;
     }
 
+    public void setBoard(char[][] newBoard) {
+        this.board = newBoard;
+    }
+
     public void clearBoard() {
         initializeBoard();
     }

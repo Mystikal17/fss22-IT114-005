@@ -23,6 +23,7 @@ public class Client {
     private Thread inputThread;
     private Thread fromServerThread;
     private String clientName = "";
+    private Grid grid;
 
     public Client() {
         System.out.println("");
@@ -254,17 +255,18 @@ public class Client {
                         p.getClientName(),
                         p.getMessage()));
                 break;
-                case START_GAME:
-               
+            case START_GAME:
+                System.out.println("The game has started!");
                 break;
             case GAME_OVER:
-                
-                break;
-            case GRID:
-                
+                System.out.println("Game Over! Thank you for playing!");
                 break;
             case ROUND_OVER:
-                
+                System.out.println("End of Round. Get ready for the next one!");
+                break;
+            case GRID:
+                 this.grid.setBoard(p.getGrid().getBoard());
+                 System.out.println("Grid updated!"); 
                 break;
             default:
                 break;
@@ -325,6 +327,22 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendGridUpdate(Grid updatedGrid) {
+        try {
+            Payload p = new Payload();
+            p.setPayloadType(PayloadType.GRID);
+            p.setGrid(updatedGrid);
+            out.writeObject(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void modifyGridCell(int row, int col, char value) {
+        grid.getBoard()[row][col] = value;
+        sendGridUpdate(grid);
     }
 
 }

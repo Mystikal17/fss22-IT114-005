@@ -145,6 +145,9 @@ public class ServerThread extends Thread {
             }
                 break;
             case GRID:
+                if (currentRoom != null) {
+                    currentRoom.updateGrid(p.getGrid());
+                }
                 break;
             case ROUND_OVER:
             if (currentRoom != null) {
