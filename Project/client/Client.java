@@ -33,11 +33,8 @@ public class Client {
         if (server == null) {
             return false;
         }
-   
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
-
     }
-
 
     private boolean connect(String address, int port) {
         try {
@@ -58,7 +55,6 @@ public class Client {
     }
 
     private boolean isConnection(String text) {
-        // https://www.w3schools.com/java/java_regex.asp
         return text.matches(ipAddressPattern)
                 || text.matches(localhostPattern);
     }
@@ -339,7 +335,7 @@ public class Client {
             e.printStackTrace();
         }
     }
-    
+
     public void modifyGridCell(int row, int col, char value) {
         grid.getBoard()[row][col] = value;
         sendGridUpdate(grid);
