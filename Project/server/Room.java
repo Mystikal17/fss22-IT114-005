@@ -23,7 +23,9 @@ public class Room implements AutoCloseable{
 	private ServerThread drawer;
 	private Grid grid;
 	private List<ServerThread> readyPlayers = new ArrayList<>();
-    private final static String READY = "ready";
+	private int roundTime = 0;
+	private int maxPoints = 100;
+	private Timer pointTimer;
 	
 
 	// Commands
@@ -36,7 +38,7 @@ public class Room implements AutoCloseable{
 	private final static String START_GAME = "startgame";
 	private final static String ROUND_OVER = "roundover";
 	private final static String GAME_OVER = "gameover";
-		
+	private final static String READY = "ready";
 
 
 	public Room(String name) {
@@ -154,7 +156,7 @@ public class Room implements AutoCloseable{
 					case ROUND_OVER:
 						endRound();
 						break;
-						case READY:
+					case READY:
 						handleReadyCommand(client);
 						break;
 					default:
@@ -248,6 +250,7 @@ public class Room implements AutoCloseable{
             isRoundOver = true;
             String endOfRoundMessage = "End of Round. Get ready for the next one!";
     		sendMessage(null, endOfRoundMessage);
+			schedulePointTimer();
         } 
 		if (currentWordIndex < wordList.size()) {
             String nextWord = wordList.get(currentWordIndex);
@@ -264,6 +267,23 @@ public class Room implements AutoCloseable{
         }
 	
 	}
+
+	private void schedulePointTimer() {
+        pointTimer = new Timer();
+        pointTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                updatePoints();
+            }
+        }, 0, 5000); // Decrease points every 5 seconds
+    }
+
+	private void updatePoints() {
+        if (maxPoints > 0) {
+            maxPoints -= 10;
+            sendMessage(null, "Points updated! Max points: " + maxPoints);
+        }
+    }
 
 	private String getBlankWord(String word) {
 		StringBuilder blankWord = new StringBuilder();
@@ -293,7 +313,13 @@ public class Room implements AutoCloseable{
 	private void startNextRound() {
         isRoundOver = false;
 		correctGuessCount = 0;
-		scheduleNextRound();
+		roundTime = 0; // Reset elapsed time for the next round
+        maxPoints = 100; // Reset max points for the next round
+        scheduleNextRound();
+        if (pointTimer != null) {
+            pointTimer.cancel();
+            pointTimer = null;
+        }
         
     }
 	
