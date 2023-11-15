@@ -142,7 +142,11 @@ public class Client {
         } else if (isRoundOverCommand(text)) {
             sendRoundOverCommand();
             return true;
-        } 
+        } else if (isGuessCommand(text)) {
+            String guessedWord = text.substring("/guess ".length());
+            sendGuessCommand(guessedWord);
+            return true;
+        }
         return false;
     }
 
@@ -337,6 +341,21 @@ public class Client {
     public void modifyGridCell(int row, int col, char value) {
         grid.getBoard()[row][col] = value;
         sendGridUpdate(grid);
+    }
+
+    private boolean isGuessCommand(String text) {
+        return text.startsWith("/guess ");
+    }
+    private void sendGuessCommand(String guessedWord) {
+        try {
+            Payload p = new Payload();
+            p.setPayloadType(PayloadType.GUESS);
+            p.setMessage(guessedWord);
+            p.setClientName(clientName);
+            out.writeObject(p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

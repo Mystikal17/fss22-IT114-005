@@ -39,6 +39,7 @@ public class Room implements AutoCloseable{
 	private final static String ROUND_OVER = "roundover";
 	private final static String GAME_OVER = "gameover";
 	private final static String READY = "ready";
+	private final static String GUESS = "guess";
 
 
 	public Room(String name) {
@@ -158,6 +159,9 @@ public class Room implements AutoCloseable{
 						break;
 					case READY:
 						handleReadyCommand(client);
+						break;
+					case GUESS:
+						processGuessCommand(client, comm2);
 						break;
 					default:
 						wasCommand = false;
@@ -313,13 +317,7 @@ public class Room implements AutoCloseable{
 	private void startNextRound() {
         isRoundOver = false;
 		correctGuessCount = 0;
-		roundTime = 0; // Reset elapsed time for the next round
-        maxPoints = 100; // Reset max points for the next round
-        scheduleNextRound();
-        if (pointTimer != null) {
-            pointTimer.cancel();
-            pointTimer = null;
-        }
+		scheduleNextRound();
         
     }
 	
@@ -365,7 +363,30 @@ public class Room implements AutoCloseable{
 		grid.setBoard(newGrid.getBoard());
 		sendMessage(null, "Grid updated!"); 
 	}
+	private void processGuessCommand(ServerThread client, String[] comm2) {
+		if (drawer == client || comm2.length < 2) {
+			client.sendMessage("Server: ", "Invalid guess command.");
+			return;
+		}
 	
+		String guessedWord = comm2[1].toLowerCase();
+	
+		if (currentWordIndex <= 0 || currentWordIndex > wordList.size()) {
+			client.sendMessage("Server: ","No word to guess. The game might not be in progress.");
+			return;
+		}
+	
+		String actualWord = wordList.get(currentWordIndex - 1).toLowerCase();
+	
+		if (guessedWord.equals(actualWord)) {
+			// Correct guess
+			client.sendMessage("Server: ", "Congratulations! You guessed the word correctly!");
+			playerGuessedCorrectly();
+		} else {
+			// Incorrect guess
+			client.sendMessage("Server: ", "Incorrect guess. Try again!");
+		}
+	}
 }
 
            
