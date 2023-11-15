@@ -160,6 +160,7 @@ public class Room implements AutoCloseable{
 						break;
 					case READY:
 						handleReadyCommand(client);
+						
 						break;
 					case GUESS:
 						processGuessCommand(client, comm2);
@@ -249,6 +250,16 @@ public class Room implements AutoCloseable{
         clients = null;
     }
 	
+	private void handleReadyPhase() {
+			if (currentPhase == Phase.READY) {
+				if (isAllPlayersReady()) {
+					startGame();
+				}
+			}
+		}
+		
+		
+
 	private boolean isRoundOver = false;
 	public void endRound() {
 		if (isGameStarted && !isRoundOver) {
@@ -256,15 +267,18 @@ public class Room implements AutoCloseable{
             String endOfRoundMessage = "End of Round. Get ready for the next one!";
     		sendMessage(null, endOfRoundMessage);
 			schedulePointTimer();
+			showEndOfRoundInfo();
         } 
 		switch (currentPhase) {
 			case READY:
 				break;
 			case PREP:
+				startPrepPhase();
 				currentPhase = Phase.GUESS;
 				// Additional logic for GUESS phase setup
 				break;
 			case GUESS:
+				startGuessPhase();
 				currentPhase = Phase.END;
 				// Additional logic for END phase setup
 				break;
@@ -273,7 +287,7 @@ public class Room implements AutoCloseable{
 				// You can reset the game or close the room here
 				break;
 		}
-	
+
 		// Handle transitions specific to each phase
 		switch (currentPhase) {
 			case GUESS:
@@ -297,6 +311,75 @@ public class Room implements AutoCloseable{
             handleEndOfGame();
         }
 	
+	}
+
+	private final Timer prepTimer = new Timer();
+	private void startPrepPhase() {
+		if (currentPhase == Phase.PREP) {
+			if (drawer != null) {
+				// Notify the drawer about their role
+				drawer.sendMessage("Server", "You are the drawer! You have 45 seconds to draw.");
+	
+				// Notify other players about the drawer and the waiting phase
+				for (ServerThread player : clients) {
+					if (player != drawer) {
+						player.sendMessage("Server", "The drawer is drawing. Please wait.");
+					}
+				}
+	
+				// Start a 45-second timer for the drawer to draw
+				prepTimer.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						prepTimer.cancel();
+						startGuessPhase(); // Move to the guess phase after 45 seconds
+					}
+				}, 45000); // 45 seconds
+			}
+		}
+	}
+
+	
+	private final Timer guessTimer = new Timer(); 
+	private void startGuessPhase() {
+		if (currentPhase == Phase.PREP) {
+			currentPhase = Phase.GUESS;
+	
+			// Notify players about the start of the guess phase
+			sendMessage(null, "Guess phase started! Other players, start guessing.");
+	
+			// Start a 45-second timer for other players to guess
+			guessTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					guessTimer.cancel();
+					startEndPhase(); // Move to the end phase after guess time
+				}
+			}, 45000); // 45 seconds for guessing
+		}
+	}
+
+	private void startEndPhase() {
+		if (currentPhase == Phase.GUESS) {
+			currentPhase = Phase.END;
+	
+			// Additional logic for the END phase setup if needed
+			// ...
+	
+			sendMessage(null, "Time's up for guessing! Moving to the end phase.");
+		}
+	}
+
+	private void showEndOfRoundInfo() {
+		// Display the word
+		String currentWord = wordList.get(currentWordIndex - 1);
+		sendMessage(null, "The word was: " + currentWord);
+	
+		// Display points earned by each player
+		for (ServerThread player : clients) {
+			sendMessage(null, player.getClientName() + " earned " + maxPoints + " points!");
+			// Assuming all players get the same points at the end of the round
+		}
 	}
 
 	private void schedulePointTimer() {
@@ -332,14 +415,16 @@ public class Room implements AutoCloseable{
 	}
 
 	private void scheduleNextRound() {
-        roundTimer = new Timer();
-        roundTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-				currentPhase = Phase.READY;
-                startNextRound();
-            }
-        }, 5000); 
+        isRoundOver = false;
+    	correctGuessCount = 0;
+    	Timer delayTimer = new Timer();
+    delayTimer.schedule(new TimerTask() {
+        @Override
+        public void run() {
+            delayTimer.cancel(); 
+            scheduleNextRound(); 
+        }
+    }, 10000); 
     }
 
 	private void startNextRound() {
@@ -420,9 +505,6 @@ public class Room implements AutoCloseable{
 	private boolean isReadyCommand(String command) {
 		return command.equalsIgnoreCase(READY);
 	}
-	
-		
-
 }
 
            
