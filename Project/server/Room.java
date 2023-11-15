@@ -9,6 +9,7 @@ import java.util.TimerTask;
 
 import Project.common.Payload;
 import Project.common.PayloadType;
+import Project.common.Phase;
 import Project.common.WordList;
 import Project.common.Grid;
 public class Room implements AutoCloseable{
@@ -26,7 +27,7 @@ public class Room implements AutoCloseable{
 	private int roundTime = 0;
 	private int maxPoints = 100;
 	private Timer pointTimer;
-	
+	private Phase currentPhase = Phase.READY;
 
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
@@ -256,6 +257,32 @@ public class Room implements AutoCloseable{
     		sendMessage(null, endOfRoundMessage);
 			schedulePointTimer();
         } 
+		switch (currentPhase) {
+			case READY:
+				break;
+			case PREP:
+				currentPhase = Phase.GUESS;
+				// Additional logic for GUESS phase setup
+				break;
+			case GUESS:
+				currentPhase = Phase.END;
+				// Additional logic for END phase setup
+				break;
+			case END:
+				// Handle the end of the game or any cleanup
+				// You can reset the game or close the room here
+				break;
+		}
+	
+		// Handle transitions specific to each phase
+		switch (currentPhase) {
+			case GUESS:
+				// Additional setup for the GUESS phase
+				break;
+			case END:
+				// Handle the end of the game or any cleanup
+				break;
+		}
 		if (currentWordIndex < wordList.size()) {
             String nextWord = wordList.get(currentWordIndex);
             currentWordIndex++;
@@ -309,6 +336,7 @@ public class Room implements AutoCloseable{
         roundTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+				currentPhase = Phase.READY;
                 startNextRound();
             }
         }, 5000); 
@@ -333,6 +361,7 @@ public class Room implements AutoCloseable{
     public void startGame() {
 		if (!isGameStarted) {
             isGameStarted = true;
+			currentPhase = Phase.PREP;
             String startGameMessage = "The game has started!";
     		sendMessage(null, startGameMessage);
         } 
@@ -387,6 +416,13 @@ public class Room implements AutoCloseable{
 			client.sendMessage("Server: ", "Incorrect guess. Try again!");
 		}
 	}
+
+	private boolean isReadyCommand(String command) {
+		return command.equalsIgnoreCase(READY);
+	}
+	
+		
+
 }
 
            
