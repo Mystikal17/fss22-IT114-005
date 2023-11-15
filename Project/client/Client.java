@@ -79,7 +79,6 @@ public class Client {
         try {
             Payload p = new Payload();
             p.setPayloadType(PayloadType.START_GAME); 
-            p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {
             e.printStackTrace();
@@ -90,7 +89,6 @@ public class Client {
         try {
             Payload p = new Payload();
             p.setPayloadType(PayloadType.GAME_OVER); 
-            p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {
             e.printStackTrace();
@@ -101,7 +99,6 @@ public class Client {
         try {
             Payload p = new Payload();
             p.setPayloadType(PayloadType.ROUND_OVER); 
-            p.setClientName(clientName);
             out.writeObject(p);
         } catch (IOException e) {
             e.printStackTrace();
@@ -145,10 +142,11 @@ public class Client {
         } else if (isRoundOverCommand(text)) {
             sendRoundOverCommand();
             return true;
-        }
+        } 
         return false;
     }
 
+  
     // Send methods
     private void sendConnect() throws IOException {
         Payload p = new Payload();

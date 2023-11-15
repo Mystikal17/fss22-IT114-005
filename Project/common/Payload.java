@@ -5,8 +5,9 @@ public class Payload implements Serializable {
     //read https://www.baeldung.com/java-serial-version-uid
     private static final long serialVersionUID = 1L;//change this if the class changes
     private Grid grid; 
+    private boolean isReady = false;
     
-
+  
     public Grid getGrid() {
         return grid;
     }

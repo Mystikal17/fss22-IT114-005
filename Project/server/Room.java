@@ -22,6 +22,8 @@ public class Room implements AutoCloseable{
     private int correctGuessCount = 0;
 	private ServerThread drawer;
 	private Grid grid;
+	private List<ServerThread> readyPlayers = new ArrayList<>();
+    private final static String READY = "ready";
 	
 
 	// Commands
@@ -103,6 +105,22 @@ public class Room implements AutoCloseable{
 		}
 	}
 
+	private boolean isAllPlayersReady() {
+        return readyPlayers.size() == clients.size();
+    }
+
+	private void handleReadyCommand(ServerThread client) {
+        if (!readyPlayers.contains(client)) {
+            readyPlayers.add(client);
+            sendMessage(client, "You are ready!");
+            if (isAllPlayersReady()) {
+                startGame();
+            }
+        } else {
+            sendMessage(client, "You are already ready!");
+        }
+    }
+
 	private boolean processCommands(String message, ServerThread client) {
 		boolean wasCommand = false;
 		try {
@@ -135,6 +153,9 @@ public class Room implements AutoCloseable{
 						break;
 					case ROUND_OVER:
 						endRound();
+						break;
+						case READY:
+						handleReadyCommand(client);
 						break;
 					default:
 						wasCommand = false;

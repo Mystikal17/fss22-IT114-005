@@ -19,6 +19,8 @@ public class ServerThread extends Thread {
         System.out.println(String.format("Thread[%s]: %s", getId(), message));
     }
 
+
+
     public ServerThread(Socket myClient, Room room) {
         info("Thread created");
         // get communication channels to single client
