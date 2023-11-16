@@ -341,8 +341,9 @@ public class Client {
         }
     }
 
-    public void modifyGridCell(int row, int col, char value) {
+    public void modifyGridCell(int row, int col, char value, char color) {
         grid.getBoard()[row][col] = value;
+        grid.getColors()[row][col] = color;
         sendGridUpdate(grid);
     }
 
