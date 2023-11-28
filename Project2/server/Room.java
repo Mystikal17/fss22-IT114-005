@@ -240,7 +240,7 @@ public class Room implements AutoCloseable{
                 spectators.add(winner); // Add winner as a spectator
             }
         }
-
+		calculatePlayerComparisons();	
         startGame(); // Start a new round
     }
 
@@ -274,5 +274,36 @@ public class Room implements AutoCloseable{
     }
     sendMessage(null, finalScoresMessage.toString());
     }
+	private void calculatePlayerComparisons() {
+		int totalPlayers = clients.size();
+		List<ServerThread> playerList = new ArrayList<>(clients);
+	
+		for (int i = 0; i < totalPlayers; i++) {
+			ServerThread currentPlayer = playerList.get(i);
+			ServerThread nextPlayer = playerList.get((i + 1) % totalPlayers); // Wrap around for last player
+	
+			String currentChoice = playerChoices.get(currentPlayer);
+			String nextChoice = playerChoices.get(nextPlayer);
+	
+			if (currentChoice == null || nextChoice == null) {
+				// Handle case where one or both players didn't make a choice
+				// This could be spectator(s) or players who didn't select an option
+				continue;
+			}
+	
+			// Logic for comparing choices and determining the result
+			if (currentChoice.equals(nextChoice)) {
+				sendMessage(null, currentPlayer.getClientName() + " vs " + nextPlayer.getClientName() + ": Tie!");
+			} else if ((currentChoice.equals("Rock") && nextChoice.equals("Scissors")) ||
+					   (currentChoice.equals("Paper") && nextChoice.equals("Rock")) ||
+					   (currentChoice.equals("Scissors") && nextChoice.equals("Paper"))) {
+				sendMessage(null, currentPlayer.getClientName() + " vs " + nextPlayer.getClientName() + ": " + currentPlayer.getClientName() + " wins!");
+				playerScores.put(currentPlayer, playerScores.getOrDefault(currentPlayer, 0) + 1);
+			} else {
+				sendMessage(null, currentPlayer.getClientName() + " vs " + nextPlayer.getClientName() + ": " + nextPlayer.getClientName() + " wins!");
+				playerScores.put(nextPlayer, playerScores.getOrDefault(nextPlayer, 0) + 1);
+			}
+		}
+	}
 
 }
