@@ -16,6 +16,7 @@ public class Room implements AutoCloseable{
 	private int remainingPlayers;
     private Map<ServerThread, String> playerChoices;
     private List<ServerThread> spectators;
+	private Map<ServerThread, Integer> playerScores = new HashMap<>();
 	
 	// Commands
 	private final static String COMMAND_TRIGGER = "/";
@@ -216,11 +217,18 @@ public class Room implements AutoCloseable{
             if (choice == null || choice.isEmpty()) {
                 spectators.add(client); // Add non-participating players as spectators
                 remainingPlayers--; // Decrease count for players who didn't make a choice
+				playerScores.put(client, playerScores.getOrDefault(client, 0) + 1);
             } else {
                 choices.computeIfAbsent(choice, k -> new ArrayList<>()).add(client);
             }
         }
 
+		StringBuilder scoresMessage = new StringBuilder("Scores:\n");
+		for (Map.Entry<ServerThread, Integer> entry : playerScores.entrySet()) {
+			scoresMessage.append(entry.getKey().getClientName()).append(": ").append(entry.getValue()).append("\n");
+		}
+		sendMessage(null, scoresMessage.toString());
+	
         for (Map.Entry<String, List<ServerThread>> entry : choices.entrySet()) {
             List<ServerThread> players = entry.getValue();
             if (players.size() > 1) {
@@ -259,6 +267,12 @@ public class Room implements AutoCloseable{
         playerChoices.clear();
         spectators.clear();
         remainingPlayers = 0;
+
+		StringBuilder finalScoresMessage = new StringBuilder("Final Scores:\n");
+    for (Map.Entry<ServerThread, Integer> entry : playerScores.entrySet()) {
+        finalScoresMessage.append(entry.getKey().getClientName()).append(": ").append(entry.getValue()).append("\n");
+    }
+    sendMessage(null, finalScoresMessage.toString());
     }
 
 }
