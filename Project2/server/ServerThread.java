@@ -134,10 +134,13 @@ public class ServerThread extends Thread {
                     sendMessage("Server", "You are a spectator. You can only watch.");
                     // Optionally, you can add logic here to handle spectator actions
                 } else {
-                    if (currentRoom != null) {
-                        currentRoom.sendMessage(this, p.getMessage());
+                    if (p.getMessage().equalsIgnoreCase("/startgame")) {
+                        if (currentRoom != null) {
+                            currentRoom.sendMessage(this, p.getMessage());
+                            currentRoom.startGame();
                     } else {
                         Room.joinRoom("lobby", this);
+                    }
                     }
                 }
                 break;

@@ -25,6 +25,7 @@ public class Room implements AutoCloseable{
 	private final static String DISCONNECT = "disconnect";
 	private final static String LOGOUT = "logout";
 	private final static String LOGOFF = "logoff";
+	private final static String START_GAME = "startgame";
 
 	public Room(String name) {
 		this.name = name;
@@ -109,6 +110,10 @@ public class Room implements AutoCloseable{
 					case LOGOFF:
 						Room.disconnectClient(client, this);
 						break;
+					case START_GAME:
+						startGame();
+						wasCommand = true;
+						break;
 					default:
 						wasCommand = false;
 						break;
@@ -186,7 +191,7 @@ public class Room implements AutoCloseable{
 		clients = null;
 	}
 
-	private void startGame() {
+	public synchronized void startGame() {
         remainingPlayers = clients.size();
         playerChoices.clear();
         spectators.clear();

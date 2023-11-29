@@ -55,7 +55,6 @@ public class Client {
     }
 
     private boolean isConnection(String text) {
-        // https://www.w3schools.com/java/java_regex.asp
         return text.matches(ipAddressPattern)
                 || text.matches(localhostPattern);
     }
@@ -91,7 +90,14 @@ public class Client {
             return true;
         } else if (isName(text)) {
             return true;
-        }
+        } else if (text.trim().equalsIgnoreCase("/startgame")) {
+                try {
+                    sendStartGameCommand();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
         return false;
     }
 
@@ -127,6 +133,9 @@ public class Client {
                             if (!processCommand(line)) {
                                 if (isConnected()) {
                                     if (line != null && line.trim().length() > 0) {
+                                        if (line.equalsIgnoreCase("/startgame")) {
+                                            startGameCommand(); // Call the method to send the start game command
+                                        }
                                         sendMessage(line);
                                     }
 
@@ -242,6 +251,22 @@ public class Client {
             e.printStackTrace();
         } catch (NullPointerException ne) {
             System.out.println("Server was never opened so this exception is ok");
+        }
+    }
+
+    private void startGameCommand() {
+        try {
+            sendMessage("/startgame"); // Sending the /startgame command to the server
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendStartGameCommand() throws IOException {
+        if (isConnected()) {
+            sendMessage("/startgame");
+        } else {
+            System.out.println("Not connected to server");
         }
     }
 
