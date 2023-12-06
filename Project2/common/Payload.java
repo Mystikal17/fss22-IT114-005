@@ -20,6 +20,17 @@ public class Payload implements Serializable {
         this.clientName = clientName;
     }
 
+    private long clientId;
+
+    public long getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(long clientId) {
+        this.clientId = clientId;
+    }
+
+
     private String message;
     public String getMessage() {
         return message;
