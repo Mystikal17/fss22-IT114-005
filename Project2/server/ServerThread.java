@@ -4,25 +4,40 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import Project.common.Payload;
-import Project.common.PayloadType;
+import Project2.common.Phase;
+import Project2.common.Constants;
+import Project2.common.Payload;
+import Project2.common.PayloadType;
+import Project2.common.RoomResultPayload;
+
 public class ServerThread extends Thread {
     private Socket client;
     private String clientName;
     private boolean isRunning = false;
     private ObjectOutputStream out;// exposed here for send()
-    private boolean isSpectator = false;
     // private Server server;// ref to our server so we can call methods on it
     // more easily
     private Room currentRoom;
+    private static Logger logger = Logger.getLogger(ServerThread.class.getName());
+    private long myClientId;
 
-    private void info(String message) {
-        System.out.println(String.format("Thread[%s]: %s", getId(), message));
+    public void setClientId(long id) {
+        myClientId = id;
+    }
+
+    public long getClientId() {
+        return myClientId;
+    }
+
+    public boolean isRunning() {
+        return isRunning;
     }
 
     public ServerThread(Socket myClient, Room room) {
-        info("Thread created");
+        logger.info("ServerThread created");
         // get communication channels to single client
         this.client = myClient;
         this.currentRoom = room;
@@ -31,13 +46,13 @@ public class ServerThread extends Thread {
 
     protected void setClientName(String name) {
         if (name == null || name.isBlank()) {
-            System.err.println("Invalid client name being set");
+            logger.warning("Invalid name being set");
             return;
         }
         clientName = name;
     }
 
-    protected String getClientName() {
+    public String getClientName() {
         return clientName;
     }
 
@@ -49,45 +64,104 @@ public class ServerThread extends Thread {
         if (room != null) {
             currentRoom = room;
         } else {
-            info("Passed in room was null, this shouldn't happen");
+            logger.info("Passed in room was null, this shouldn't happen");
         }
     }
 
     public void disconnect() {
-        info("Thread being disconnected by server");
+        sendConnectionStatus(myClientId, getClientName(), false);
+        logger.info("Thread being disconnected by server");
         isRunning = false;
         cleanup();
     }
 
     // send methods
-    public boolean sendMessage(String from, String message) {
+   
+     public boolean sendPhaseSync(Phase phase) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.PHASE);
+        p.setMessage(phase.name());
+        return send(p);
+    }
+
+    public boolean sendReadyStatus(long clientId) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.READY);
+        p.setClientId(clientId);
+        return send(p);
+    }
+    
+    public boolean sendRoomName(String name) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.JOIN_ROOM);
+        p.setMessage(name);
+        return send(p);
+    }
+
+    public boolean sendRoomsList(String[] rooms, String message) {
+        RoomResultPayload payload = new RoomResultPayload();
+        payload.setRooms(rooms);
+        if (message != null) {
+            payload.setMessage(message);
+        }
+        return send(payload);
+    }
+
+    public boolean sendExistingClient(long clientId, String clientName) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.SYNC_CLIENT);
+        p.setClientId(clientId);
+        p.setClientName(clientName);
+        return send(p);
+    }
+
+    public boolean sendResetUserList() {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.RESET_USER_LIST);
+        return send(p);
+    }
+
+    public boolean sendClientId(long id) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.CLIENT_ID);
+        p.setClientId(id);
+        return send(p);
+    }
+
+    public boolean sendMessage(long clientId, String message) {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.MESSAGE);
-        p.setClientName(from);
+        p.setClientId(clientId);
         p.setMessage(message);
         return send(p);
     }
-    public boolean sendConnectionStatus(String who, boolean isConnected){
+
+    public boolean sendConnectionStatus(long clientId, String who, boolean isConnected) {
         Payload p = new Payload();
-        p.setPayloadType(isConnected?PayloadType.CONNECT:PayloadType.DISCONNECT);
+        p.setPayloadType(isConnected ? PayloadType.CONNECT : PayloadType.DISCONNECT);
+        p.setClientId(clientId);
         p.setClientName(who);
-        p.setMessage(isConnected?"connected":"disconnected");
+        // p.setMessage(isConnected ? "connected" : "disconnected");
+        p.setMessage(String.format("%s the room %s", (isConnected ? "Joined" : "Left"), currentRoom.getName()));
         return send(p);
     }
 
     private boolean send(Payload payload) {
-        // added a boolean so we can see if the send was successful
         try {
+            logger.log(Level.FINE, "Outgoing payload: " + payload);
             out.writeObject(payload);
+            logger.log(Level.INFO, "Sent payload: " + payload);
             return true;
         } catch (IOException e) {
-            info("Error sending message to client (most likely disconnected)");
-            // comment this out to inspect the stack trace
+            logger.info("Error sending message to client (most likely disconnected)");
+            // uncomment this to inspect the stack trace
             // e.printStackTrace();
             cleanup();
             return false;
         } catch (NullPointerException ne) {
-            info("Message was attempted to be sent before outbound stream was opened");
+            logger.info("Message was attempted to be sent before outbound stream was opened: " + payload);
+            // uncomment this to inspect the stack trace
+            // e.printStackTrace();
             return true;// true since it's likely pending being opened
         }
     }
@@ -95,7 +169,6 @@ public class ServerThread extends Thread {
     // end send methods
     @Override
     public void run() {
-        info("Thread starting");
         try (ObjectOutputStream out = new ObjectOutputStream(client.getOutputStream());
                 ObjectInputStream in = new ObjectInputStream(client.getInputStream());) {
             this.out = out;
@@ -106,63 +179,70 @@ public class ServerThread extends Thread {
                                                                      // likely mean a disconnect)
             ) {
 
-                info("Received from client: " + fromClient);
-                processMessage(fromClient);
+                logger.info("Received from client: " + fromClient);
+                processPayload(fromClient);
 
             } // close while loop
         } catch (Exception e) {
             // happens when client disconnects
             e.printStackTrace();
-            info("Client disconnected");
+            logger.info("Client disconnected");
         } finally {
             isRunning = false;
-            info("Exited thread loop. Cleaning up connection");
+            logger.info("Exited thread loop. Cleaning up connection");
             cleanup();
         }
     }
 
-    void processMessage(Payload p) {
+    void processPayload(Payload p) {
         switch (p.getPayloadType()) {
             case CONNECT:
                 setClientName(p.getClientName());
                 break;
             case DISCONNECT:
+                Room.disconnectClient(this, getCurrentRoom());
                 break;
             case MESSAGE:
-                if (isSpectator) {
-                    // Implement logic for spectators to observe the game
-                    sendMessage("Server", "You are a spectator. You can only watch.");
-                    // Optionally, you can add logic here to handle spectator actions
+                if (currentRoom != null) {
+                    currentRoom.sendMessage(this, p.getMessage());
                 } else {
-                    if (p.getMessage().equalsIgnoreCase("/startgame")) {
-                        if (currentRoom != null) {
-                            currentRoom.sendMessage(this, p.getMessage());
-                            currentRoom.startGame();
-                    } else {
-                        Room.joinRoom("lobby", this);
-                    }
-                    }
+                    // TODO migrate to lobby
+                    logger.log(Level.INFO, "Migrating to lobby on message with null room");
+                    Room.joinRoom(Constants.LOBBY, this);
+                }
+                break;
+            case GET_ROOMS:
+                Room.getRooms(p.getMessage().trim(), this);
+                break;
+            case CREATE_ROOM:
+                Room.createRoom(p.getMessage().trim(), this);
+                break;
+            case JOIN_ROOM:
+                Room.joinRoom(p.getMessage().trim(), this);
+                break;
+             case READY:
+                try {
+                    ((GameRoom) currentRoom).setReady(this);
+                } catch (Exception e) {
+                    logger.severe(String.format("There was a problem during readyCheck %s", e.getMessage()));
+                    e.printStackTrace();
                 }
                 break;
             default:
                 break;
+
         }
-    }
 
-    public void setSpectator(boolean isSpectator) {
-        this.isSpectator = isSpectator;
     }
-
 
     private void cleanup() {
-        info("Thread cleanup() start");
+        logger.info("Thread cleanup() start");
         try {
             client.close();
         } catch (IOException e) {
-            info("Client already closed");
+            logger.info("Client already closed");
         }
-        info("Thread cleanup() complete");
+        logger.info("Thread cleanup() complete");
     }
- 
   
 }
