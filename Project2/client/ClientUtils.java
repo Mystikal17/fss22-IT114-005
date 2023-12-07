@@ -9,14 +9,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 public abstract class ClientUtils {
-    /***
-     * Attempts to calculate the necessary dimensions for a potentially wrapped
-     * string of text. This isn't perfect and some extra whitespace above or below
-     * the text may occur
-     * 
-     * @param str
-     * @return
-     */
+
     public static int calcHeightForText(JPanel container, String str, int width) {
         FontMetrics metrics = container.getGraphics().getFontMetrics(container.getFont());
         int hgt = metrics.getHeight();
