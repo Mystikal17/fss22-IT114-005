@@ -1,6 +1,7 @@
-package Project2.common;
+package Project2.server;
 
-import Project2.server.ServerThread;
+import Project2.common.Player;
+
 
 public class ServerPlayer extends Player {
     private ServerThread client;
@@ -15,5 +16,9 @@ public class ServerPlayer extends Player {
 
     public ServerPlayer(ServerThread client) {
         setClient(client);
+    }
+
+    public boolean equals(ServerPlayer sp){
+        return client.getClientId() == sp.getClient().getClientId();
     }
 }

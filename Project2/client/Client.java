@@ -6,9 +6,6 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Scanner;
-import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import Project2.common.Payload;
@@ -27,11 +24,14 @@ public enum Client {
     boolean isRunning = false;
     private Thread inputThread;
     private Thread fromServerThread;
-    private String clientName = "";
+    //private String clientName = "";
+    private ClientPlayer myPlayer = new ClientPlayer();
     private long myClientId = Constants.DEFAULT_CLIENT_ID;
     private static Logger logger = Logger.getLogger(Client.class.getName());
 
-    private Hashtable<Long, String> userList = new Hashtable<Long, String>();
+    private Hashtable<Long, ClientPlayer> userList = new Hashtable<Long, ClientPlayer>();
+
+    private static IClientEvents events;
 
     public boolean isConnected() {
         if (server == null) {
@@ -41,7 +41,11 @@ public enum Client {
 
     }
 
-    boolean connect(String address, int port) {
+    public boolean connect(String address, int port, String username, IClientEvents callback) {
+        // TODO validate
+        // this.clientName = username;
+        myPlayer.setClientName(username);
+        Client.events = callback;
         try {
             server = new Socket(address, port);
             // channel to send to server
@@ -59,79 +63,9 @@ public enum Client {
         return isConnected();
     }
 
-
-    @Deprecated // remove in Milestone3
-    private boolean isConnection(String text) {
-        return text.matches(ipAddressPattern)
-                || text.matches(localhostPattern);
-    }
-
-    @Deprecated // remove in Milestone3
-    private boolean isQuit(String text) {
-        return text.equalsIgnoreCase("/quit");
-    }
-
-    @Deprecated // remove in Milestone3
-    private boolean isName(String text) {
-        if (text.startsWith("/name")) {
-            String[] parts = text.split(" ");
-            if (parts.length >= 2) {
-                clientName = parts[1].trim();
-                System.out.println("Name set to " + clientName);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    @Deprecated // removing in Milestone3
-    private boolean processClientCommand(String text) throws IOException {
-        if (isConnection(text)) {
-            if (clientName.isBlank()) {
-                System.out.println("You must set your name before you can connect via: /name your_name");
-                return true;
-            }
-            String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
-            connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
-            return true;
-        } else if (isQuit(text)) {
-            sendDisconnect();
-            isRunning = false;
-            return true;
-        } else if (isName(text)) {
-            return true;
-        } else if (text.startsWith("/joinroom")) {
-            String roomName = text.replace("/joinroom", "").trim();
-            sendJoinRoom(roomName);
-            return true;
-        } else if (text.startsWith("/createroom")) {
-            String roomName = text.replace("/createroom", "").trim();
-            sendCreateRoom(roomName);
-            return true;
-        } else if (text.startsWith("/rooms")) {
-            String query = text.replace("/rooms", "").trim();
-            sendListRooms(query);
-            return true;
-        } else if (text.equalsIgnoreCase("/users")) {
-            Iterator<Entry<Long, String>> iter = userList.entrySet().iterator();
-            System.out.println("Listing Local User List:");
-            if (userList.size() == 0) {
-                System.out.println("No local users in list");
-            }
-            while (iter.hasNext()) {
-                Entry<Long, String> user = iter.next();
-                System.out.println(String.format("%s[%s]", user.getValue(), user.getKey()));
-            }
-            return true;
-        }
-        else if(text.equalsIgnoreCase("/ready")){
-            sendReadyStatus();
-        }
-        return false;
-    }
-
     // Send methods
 
+    
     protected void sendReadyStatus() throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.READY);
@@ -168,7 +102,7 @@ public enum Client {
     protected void sendConnect() throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.CONNECT);
-        p.setClientName(clientName);
+        p.setClientName(myPlayer.getClientName());
         out.writeObject(p);
     }
 
@@ -176,51 +110,15 @@ public enum Client {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.MESSAGE);
         p.setMessage(message);
-        p.setClientName(clientName);
+        p.setClientName(myPlayer.getClientName());
         out.writeObject(p);
     }
 
-    // end send methods
-    @Deprecated // remove in Milestone3
-    private void listenForKeyboard() {
-        inputThread = new Thread() {
-            @Override
-            public void run() {
-                logger.info("Listening for input");
-                try (Scanner si = new Scanner(System.in);) {
-                    String line = "";
-                    isRunning = true;
-                    while (isRunning) {
-                        try {
-                            logger.info("Waiting for input");
-                            line = si.nextLine();
-                            if (!processClientCommand(line)) {
-                                if (isConnected()) {
-                                    if (line != null && line.trim().length() > 0) {
-                                        sendMessage(line);
-                                    }
 
-                                } else {
-                                    logger.info("Not connected to server");
-                                }
-                            }
-                        } catch (Exception e) {
-                            logger.warning("Connection dropped");
-                            break;
-                        }
-                    }
-                    logger.info("Exited loop");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    close();
-                }
-            }
-        };
-        inputThread.start();
-    }
+    // end send methods
 
     private void listenForServerPayload() {
+        isRunning = true;
         fromServerThread = new Thread() {
             @Override
             public void run() {
@@ -249,7 +147,7 @@ public enum Client {
 
     protected String getClientNameById(long id) {
         if (userList.containsKey(id)) {
-            return userList.get(id);
+            return userList.get(id).getClientName();
         }
         if (id == Constants.DEFAULT_CLIENT_ID) {
             return "[Server]";
@@ -261,11 +159,15 @@ public enum Client {
         switch (p.getPayloadType()) {
             case CONNECT:
                 if (!userList.containsKey(p.getClientId())) {
-                    userList.put(p.getClientId(), p.getClientName());
+                    ClientPlayer cp = new ClientPlayer();
+                    cp.setClientName(p.getClientName());
+                    cp.setClientId(p.getClientId());
+                    userList.put(p.getClientId(), cp);
                 }
                 System.out.println(String.format("*%s %s*",
                         p.getClientName(),
                         p.getMessage()));
+                events.onClientConnect(p.getClientId(), p.getClientName(), p.getMessage());
                 break;
             case DISCONNECT:
                 if (userList.containsKey(p.getClientId())) {
@@ -277,23 +179,32 @@ public enum Client {
                 System.out.println(String.format("*%s %s*",
                         p.getClientName(),
                         p.getMessage()));
+                events.onClientDisconnect(p.getClientId(), p.getClientName(), p.getMessage());
                 break;
             case SYNC_CLIENT:
                 if (!userList.containsKey(p.getClientId())) {
-                    userList.put(p.getClientId(), p.getClientName());
+                    ClientPlayer cp = new ClientPlayer();
+                    cp.setClientName(p.getClientName());
+                    cp.setClientId(p.getClientId());
+                    userList.put(p.getClientId(), cp);
                 }
+                events.onSyncClient(p.getClientId(), p.getClientName());
                 break;
             case MESSAGE:
                 System.out.println(String.format("%s: %s",
                         getClientNameById(p.getClientId()),
                         p.getMessage()));
+                events.onMessageReceive(p.getClientId(), p.getMessage());
                 break;
             case CLIENT_ID:
                 if (myClientId == Constants.DEFAULT_CLIENT_ID) {
                     myClientId = p.getClientId();
+                    myPlayer.setClientId(myClientId);
+                    userList.put(myClientId, myPlayer);
                 } else {
                     logger.warning("Receiving client id despite already being set");
                 }
+                events.onReceiveClientId(p.getClientId());
                 break;
             case GET_ROOMS:
                 RoomResultPayload rp = (RoomResultPayload) p;
@@ -305,9 +216,11 @@ public enum Client {
                         System.out.println(String.format("%s) %s", (i + 1), rp.getRooms()[i]));
                     }
                 }
+                events.onReceiveRoomList(rp.getRooms(), rp.getMessage());
                 break;
             case RESET_USER_LIST:
                 userList.clear();
+                events.onResetUserList();
                 break;
             case READY:
                 System.out.println(String.format("Player %s is ready", getClientNameById(p.getClientId())));
@@ -320,11 +233,6 @@ public enum Client {
                 break;
 
         }
-    }
-
-    @Deprecated // removing in Milestone3
-    public void start() throws IOException {
-        listenForKeyboard();
     }
 
     private void close() {
@@ -368,16 +276,4 @@ public enum Client {
             System.out.println("Server was never opened so this exception is ok");
         }
     }
-
-    @Deprecated // removing in Milestone3
-    public static void main(String[] args) {
-        try {
-            // if start is private, it's valid here since this main is part of the class
-            Client.INSTANCE.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-   
 }

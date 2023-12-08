@@ -76,6 +76,14 @@ public class ServerThread extends Thread {
     }
 
     // send methods
+
+    public boolean sendPlayerChoiceStatus(long clientId, GameRoom.Choice choice) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.CHOICE);
+        p.setClientId(clientId);
+        p.setMessage(choice.name()); // Assuming 'choice' is an enum and converted to string
+        return send(p);
+    }
    
      public boolean sendPhaseSync(Phase phase) {
         Payload p = new Payload();
@@ -166,35 +174,35 @@ public class ServerThread extends Thread {
         }
     }
 
-    // end send methods
-    @Override
-    public void run() {
-        try (ObjectOutputStream out = new ObjectOutputStream(client.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(client.getInputStream());) {
-            this.out = out;
-            isRunning = true;
-            Payload fromClient;
-            while (isRunning && // flag to let us easily control the loop
-                    (fromClient = (Payload) in.readObject()) != null // reads an object from inputStream (null would
-                                                                     // likely mean a disconnect)
-            ) {
+     // end send methods
+     @Override
+     public void run() {
+         try (ObjectOutputStream out = new ObjectOutputStream(client.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(client.getInputStream());) {
+             this.out = out;
+             isRunning = true;
+             Payload fromClient;
+             while (isRunning && // flag to let us easily control the loop
+                     (fromClient = (Payload) in.readObject()) != null // reads an object from inputStream (null would
+                                                                      // likely mean a disconnect)
+             ) {
+ 
+                 logger.info("Received from client: " + fromClient);
+                 processPayload(fromClient);
+ 
+             } // close while loop
+         } catch (Exception e) {
+             // happens when client disconnects
+             e.printStackTrace();
+             logger.info("Client disconnected");
+         } finally {
+             isRunning = false;
+             logger.info("Exited thread loop. Cleaning up connection");
+             cleanup();
+         }
+     }
 
-                logger.info("Received from client: " + fromClient);
-                processPayload(fromClient);
-
-            } // close while loop
-        } catch (Exception e) {
-            // happens when client disconnects
-            e.printStackTrace();
-            logger.info("Client disconnected");
-        } finally {
-            isRunning = false;
-            logger.info("Exited thread loop. Cleaning up connection");
-            cleanup();
-        }
-    }
-
-    void processPayload(Payload p) {
+     void processPayload(Payload p) {
         switch (p.getPayloadType()) {
             case CONNECT:
                 setClientName(p.getClientName());
@@ -220,7 +228,7 @@ public class ServerThread extends Thread {
             case JOIN_ROOM:
                 Room.joinRoom(p.getMessage().trim(), this);
                 break;
-             case READY:
+            case READY:
                 try {
                     ((GameRoom) currentRoom).setReady(this);
                 } catch (Exception e) {

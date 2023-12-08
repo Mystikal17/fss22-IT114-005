@@ -95,6 +95,12 @@ public enum Server {
         joinRoom(Constants.LOBBY, client);
     }
 
+    /***
+     * Helper function to check if room exists by case insensitive name
+     * 
+     * @param roomName The name of the room to look for
+     * @return matched Room or null if not found
+     */
     private Room getRoom(String roomName) {
         for (int i = 0, l = rooms.size(); i < l; i++) {
             if (rooms.get(i).getName().equalsIgnoreCase(roomName)) {
@@ -104,6 +110,14 @@ public enum Server {
         return null;
     }
 
+    /***
+     * Attempts to join a room by name. Will remove client from old room and add
+     * them to the new room.
+     * 
+     * @param roomName The desired room to join
+     * @param client   The client moving rooms
+     * @return true if reassign worked; false if new room doesn't exist
+     */
     protected synchronized boolean joinRoom(String roomName, ServerThread client) {
         Room newRoom = roomName.equalsIgnoreCase(Constants.LOBBY) ? lobby : getRoom(roomName);
         Room oldRoom = client.getCurrentRoom();
@@ -119,6 +133,12 @@ public enum Server {
         return false;
     }
 
+    /***
+     * Attempts to create a room with given name if it doesn't exist already.
+     * 
+     * @param roomName The desired room to create
+     * @return true if it was created and false if it exists
+     */
     protected synchronized boolean createNewRoom(String roomName) {
         if (getRoom(roomName) != null) {
             // TODO Room exists; can't create room
@@ -134,10 +154,24 @@ public enum Server {
         }
     }
 
+    /**
+     * Returns Rooms with names having a partial match with query.
+     * Hard coded to a limit of 10.
+     * 
+     * @param query
+     * @return
+     */
     protected synchronized List<String> getRooms(String query) {
         return getRooms(query, 10);
     }
 
+    /**
+     * Returns Rooms with names having a partial match with query.
+     * 
+     * @param query
+     * @param limit The maximum records to return
+     * @return
+     */
     protected synchronized List<String> getRooms(String query, int limit) {
         List<String> matchedRooms = new ArrayList<String>();
         synchronized (rooms) {
@@ -161,6 +195,11 @@ public enum Server {
         }
     }
 
+    /**
+     * Send message to all rooms
+     * 
+     * @param message
+     */
     protected synchronized void broadcast(String message) {
         if (processCommand(message)) {
             return;

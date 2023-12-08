@@ -1,11 +1,12 @@
 package Project2.server;
 
 import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import Project2.common.Constants;
 import Project2.common.Phase;
-import Project2.common.ServerPlayer;
 import Project2.common.TimedEvent;
 
 import java.util.logging.Logger;
@@ -19,6 +20,12 @@ public class GameRoom extends Room {
     public GameRoom(String name) {
         super(name);
         // TODO Auto-generated constructor stub
+    }
+
+    public enum Choice {
+        ROCK,
+        PAPER,
+        SCISSORS
     }
 
     @Override
@@ -45,14 +52,13 @@ public class GameRoom extends Room {
                 readyCheck(true);
             });
         }
-        // Hashmaps allow fast lookup by keys
-        if(players.containsKey(client.getClientId())){
-            ServerPlayer sp = players.get(client.getClientId());
-            sp.setReady(true);
-            logger.info(String.format("Marked player %s[%s] as ready", sp.getClient().getClientName(), sp
+        players.values().stream().filter(p -> p.getClient().getClientId() == client.getClientId()).findFirst()
+                .ifPresent(p -> {
+                    p.setReady(true);
+                    logger.info(String.format("Marked player %s[%s] as ready", p.getClient().getClientName(), p
                             .getClient().getClientId()));
-                    syncReadyStatus(sp.getClient().getClientId());
-        }
+                    syncReadyStatus(p.getClient().getClientId());
+                });
         readyCheck(false);
     }
 
@@ -115,14 +121,17 @@ public class GameRoom extends Room {
     }
 
     protected void handleDisconnect(ServerPlayer player) {
+        if (player == null) {
+            logger.severe("handleDisconnect() player is null");
+            return;
+        }
         if (players.containsKey(player.getClient().getClientId())) {
             players.remove(player.getClient().getClientId());
-            super.handleDisconnect(null, player.getClient()); // change visibility to protected
-            logger.info(String.format("Total clients %s", clients.size()));
-            sendMessage(null, player.getClient().getClientName() + " disconnected");
-            if (players.isEmpty()) {
-                close();
-            }
+        }
+        super.handleDisconnect(null, player.getClient());
+        logger.info(String.format("Total clients %s", clients.size()));
+        if (players.isEmpty()) {
+            close();
         }
     }
 
@@ -136,4 +145,34 @@ public class GameRoom extends Room {
             }
         }
     }
+
+     private void handlePlayerChoices() {
+        Timer choiceTimer = new Timer();
+        choiceTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                boolean allPlayersChosen = players.values().stream()
+                    .allMatch(player -> player.isReady() || player.isSpectator());
+                
+                if (allPlayersChosen) {
+                    choiceTimer.cancel(); // Cancel the timer
+                    start(); // Start the game
+                } else {
+                    players.values().forEach(player -> {
+                        if (!player.isReady() && !player.isSpectator()) {
+                            player.setSpectator(true);
+                            sendMessage(null, String.format("%s has been moved to the spectator list.", player.getClient().getClientName()));
+                        }
+                    });
+                    start(); // Start the game (if needed) even if not all players have chosen
+                }
+            }
+        }, 10000);  // 10 seconds timeout for player choice
+    }
+
+    public void close(){
+        super.close();
+    }
+
+
 }

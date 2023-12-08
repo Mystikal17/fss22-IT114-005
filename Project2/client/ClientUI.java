@@ -24,7 +24,7 @@ import Project2.client.views.Menu;
 import Project2.client.views.RoomsPanel;
 import Project2.client.views.UserInputPanel;
 import Project2.common.Constants;
-
+  
 public class ClientUI extends JFrame implements IClientEvents, ICardControls {
     CardLayout card = null;// accessible so we can call next() and previous()
     Container container;// accessible to be passed to card methods
@@ -147,7 +147,7 @@ public class ClientUI extends JFrame implements IClientEvents, ICardControls {
         String host = csPanel.getHost();
         int port = csPanel.getPort();
         setTitle(originalTitle + " - " + username);
-        Client.INSTANCE.connect(host, port);
+        Client.INSTANCE.connect(host, port, username, this);
         // TODO add connecting screen/notice
     }
 
@@ -258,4 +258,5 @@ public class ClientUI extends JFrame implements IClientEvents, ICardControls {
             chatPanel.addText("Joined room " + roomName);
         }
     }
+    
 }

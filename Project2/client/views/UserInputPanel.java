@@ -80,4 +80,3 @@ public class UserInputPanel extends JPanel {
         return username;
     }
 }
-

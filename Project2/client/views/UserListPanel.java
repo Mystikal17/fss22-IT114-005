@@ -18,6 +18,7 @@ import javax.swing.ScrollPaneConstants;
 import Project2.client.ClientUtils;
 import Project2.client.ICardControls;
 
+
 public class UserListPanel extends JPanel {
     JPanel userListArea;
     private static Logger logger = Logger.getLogger(UserListPanel.class.getName());

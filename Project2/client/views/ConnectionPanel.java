@@ -74,4 +74,3 @@ public class ConnectionPanel extends JPanel {
         return port;
     }
 }
-

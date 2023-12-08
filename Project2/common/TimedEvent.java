@@ -4,11 +4,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Consumer;
 
-/**
- * Simple countdown timer demo of java.util.Timer facility.
- * Formerly called Countdown
- */
-
 public class TimedEvent {
     private int secondsRemaining;
     private Runnable expireCallback = null;

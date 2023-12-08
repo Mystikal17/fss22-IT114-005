@@ -28,6 +28,7 @@ import Project2.client.Client;
 import Project2.client.ClientUtils;
 import Project2.client.ICardControls;
 
+
 public class ChatPanel extends JPanel {
     private static Logger logger = Logger.getLogger(ChatPanel.class.getName());
     private JPanel chatArea = null;
