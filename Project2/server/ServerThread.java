@@ -144,6 +144,21 @@ public class ServerThread extends Thread {
         return send(p);
     }
 
+    public boolean sendCurrentTurn(long clientId) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.TURN);
+        p.setClientId(clientId);
+        return send(p);
+    }
+
+    public boolean sendResult(long clientId, String result) {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.RESULT);
+        p.setClientId(clientId);
+        p.setMessage(result);
+        return send(p);
+    }
+
     public boolean sendConnectionStatus(long clientId, String who, boolean isConnected) {
         Payload p = new Payload();
         p.setPayloadType(isConnected ? PayloadType.CONNECT : PayloadType.DISCONNECT);

@@ -5,11 +5,14 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.logging.Logger;
 
 import Project2.common.Payload;
 import Project2.common.PayloadType;
+import Project2.common.Phase;
 import Project2.common.RoomResultPayload;
 import Project2.common.Constants;
 
@@ -31,7 +34,12 @@ public enum Client {
 
     private Hashtable<Long, ClientPlayer> userList = new Hashtable<Long, ClientPlayer>();
 
-    private static IClientEvents events;
+       private static List<IClientEvents> events = new ArrayList<IClientEvents>();
+
+    public void addCallback(IClientEvents e) {
+        events.add(e);
+    }
+
 
     public boolean isConnected() {
         if (server == null) {
@@ -45,7 +53,7 @@ public enum Client {
         // TODO validate
         // this.clientName = username;
         myPlayer.setClientName(username);
-        Client.events = callback;
+        addCallback(callback);
         try {
             server = new Socket(address, port);
             // channel to send to server
@@ -65,8 +73,14 @@ public enum Client {
 
     // Send methods
 
+    public void sendChoice(String choice) throws IOException {
+        Payload p = new Payload();
+        p.setPayloadType(PayloadType.CHOICE);
+        p.setMessage(choice);
+        out.writeObject(p);
+    }
     
-    protected void sendReadyStatus() throws IOException {
+    public void sendReadyStatus() throws IOException {
         Payload p = new Payload();
         p.setPayloadType(PayloadType.READY);
         out.writeObject(p);
@@ -158,75 +172,103 @@ public enum Client {
     private void processPayload(Payload p) {
         switch (p.getPayloadType()) {
             case CONNECT:
-                if (!userList.containsKey(p.getClientId())) {
-                    ClientPlayer cp = new ClientPlayer();
-                    cp.setClientName(p.getClientName());
-                    cp.setClientId(p.getClientId());
-                    userList.put(p.getClientId(), cp);
-                }
-                System.out.println(String.format("*%s %s*",
-                        p.getClientName(),
-                        p.getMessage()));
-                events.onClientConnect(p.getClientId(), p.getClientName(), p.getMessage());
+            if (!userList.containsKey(p.getClientId())) {
+                ClientPlayer cp = new ClientPlayer();
+                cp.setClientName(p.getClientName());
+                cp.setClientId(p.getClientId());
+                userList.put(p.getClientId(), cp);
+            }
+            System.out.println(String.format("*%s %s*",
+                    p.getClientName(),
+                    p.getMessage()));
+            events.forEach(e -> {
+                e.onClientConnect(p.getClientId(), p.getClientName(), p.getMessage());
+            });
                 break;
             case DISCONNECT:
-                if (userList.containsKey(p.getClientId())) {
-                    userList.remove(p.getClientId());
-                }
-                if (p.getClientId() == myClientId) {
-                    myClientId = Constants.DEFAULT_CLIENT_ID;
-                }
-                System.out.println(String.format("*%s %s*",
-                        p.getClientName(),
-                        p.getMessage()));
-                events.onClientDisconnect(p.getClientId(), p.getClientName(), p.getMessage());
+            if (userList.containsKey(p.getClientId())) {
+                userList.remove(p.getClientId());
+            }
+            if (p.getClientId() == myClientId) {
+                myClientId = Constants.DEFAULT_CLIENT_ID;
+            }
+            System.out.println(String.format("*%s %s*",
+                    p.getClientName(),
+                    p.getMessage()));
+            events.forEach(e -> {
+                e.onClientDisconnect(p.getClientId(), p.getClientName(), p.getMessage());
+            });
                 break;
             case SYNC_CLIENT:
-                if (!userList.containsKey(p.getClientId())) {
-                    ClientPlayer cp = new ClientPlayer();
-                    cp.setClientName(p.getClientName());
-                    cp.setClientId(p.getClientId());
-                    userList.put(p.getClientId(), cp);
-                }
-                events.onSyncClient(p.getClientId(), p.getClientName());
+            if (!userList.containsKey(p.getClientId())) {
+                ClientPlayer cp = new ClientPlayer();
+                cp.setClientName(p.getClientName());
+                cp.setClientId(p.getClientId());
+                userList.put(p.getClientId(), cp);
+            }
+            events.forEach(e -> {
+                e.onSyncClient(p.getClientId(), p.getClientName());
+            });
                 break;
             case MESSAGE:
-                System.out.println(String.format("%s: %s",
-                        getClientNameById(p.getClientId()),
-                        p.getMessage()));
-                events.onMessageReceive(p.getClientId(), p.getMessage());
+            System.out.println(String.format("%s: %s",
+            getClientNameById(p.getClientId()),
+            p.getMessage()));
+            events.forEach(e -> {
+            e.onMessageReceive(p.getClientId(), p.getMessage());
+            });
+
                 break;
             case CLIENT_ID:
-                if (myClientId == Constants.DEFAULT_CLIENT_ID) {
-                    myClientId = p.getClientId();
-                    myPlayer.setClientId(myClientId);
-                    userList.put(myClientId, myPlayer);
-                } else {
-                    logger.warning("Receiving client id despite already being set");
-                }
-                events.onReceiveClientId(p.getClientId());
+            if (myClientId == Constants.DEFAULT_CLIENT_ID) {
+                myClientId = p.getClientId();
+                myPlayer.setClientId(myClientId);
+                userList.put(myClientId, myPlayer);
+            } else {
+                logger.warning("Receiving client id despite already being set");
+            }
+            events.forEach(e -> {
+                e.onReceiveClientId(p.getClientId());
+            });
+
                 break;
             case GET_ROOMS:
-                RoomResultPayload rp = (RoomResultPayload) p;
-                System.out.println("Received Room List:");
-                if (rp.getMessage() != null) {
-                    System.out.println(rp.getMessage());
-                } else {
-                    for (int i = 0, l = rp.getRooms().length; i < l; i++) {
-                        System.out.println(String.format("%s) %s", (i + 1), rp.getRooms()[i]));
-                    }
+            RoomResultPayload rp = (RoomResultPayload) p;
+            System.out.println("Received Room List:");
+            if (rp.getMessage() != null) {
+                System.out.println(rp.getMessage());
+            } else {
+                for (int i = 0, l = rp.getRooms().length; i < l; i++) {
+                    System.out.println(String.format("%s) %s", (i + 1), rp.getRooms()[i]));
                 }
-                events.onReceiveRoomList(rp.getRooms(), rp.getMessage());
+            }
+            events.forEach(e -> {
+                e.onReceiveRoomList(rp.getRooms(), rp.getMessage());
+            });
+
                 break;
             case RESET_USER_LIST:
                 userList.clear();
-                events.onResetUserList();
+                events.forEach(e -> {
+                    e.onResetUserList();
+                });
                 break;
             case READY:
-                System.out.println(String.format("Player %s is ready", getClientNameById(p.getClientId())));
-                break;
+            System.out.println(String.format("Player %s is ready", getClientNameById(p.getClientId())));
+            events.forEach(e -> {
+                if (e instanceof IGameEvents) {
+                    ((IGameEvents) e).onReceiveReady(p.getClientId());
+                }
+            });                break;
             case PHASE:
-                System.out.println(String.format("The current phase is %s", p.getMessage()));
+            System.out.println(String.format("The current phase is %s", p.getMessage()));
+            events.forEach(e -> {
+                if (e instanceof IGameEvents) {
+                    ((IGameEvents) e).onReceivePhase(Enum.valueOf(Phase.class, p.getMessage()));
+                }
+            });                break;
+            case TURN:
+                System.out.println(String.format("Current Player: %s", getClientNameById(p.getClientId())));
                 break;
             default:
                 logger.warning(String.format("Unhandled Payload type: %s", p.getPayloadType()));

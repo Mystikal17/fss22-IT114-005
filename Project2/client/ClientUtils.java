@@ -29,4 +29,10 @@ public abstract class ClientUtils {
         comp.setBorder(BorderFactory.createEmptyBorder());
         comp.setBackground(new Color(0, 0, 0, 0));
     }
+    public static int countOccurrences(String str, String subStr) {
+        // Split the string by the substring and get the length of the resulting array
+        // Subtract 1 because split() returns one more item than the number of
+        // occurrences
+        return str.split(subStr, -1).length - 1;
+    }
 }

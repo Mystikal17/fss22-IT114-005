@@ -156,6 +156,7 @@ public class ChatPanel extends JPanel {
     }
 
     public void addText(String text) {
+        logger.info("Adding Text: " + text);
         JPanel content = chatArea;
         // add message
         JEditorPane textContainer = new JEditorPane("text/plain", text);
