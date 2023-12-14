@@ -45,9 +45,14 @@ public class GameRoom extends Room {
         players.computeIfAbsent(client.getClientId(), id -> {
             ServerPlayer player = new ServerPlayer(client);
             super.addClient(client);
+            syncGameState(client);
             logger.info(String.format("Total clients %s", clients.size()));// change visibility to protected
             return player;
         });
+    }
+
+    private void syncGameState(ServerThread incomingClient) {
+        incomingClient.sendPhaseSync(currentPhase);
     }
 
     protected void setReady(ServerThread client) {
@@ -99,14 +104,6 @@ public class GameRoom extends Room {
             }
         }
     }
-
-    // private void cancelReadyTimer() {
-    //     if (readyTimer != null) {
-    //         readyTimer.cancel();
-    //         readyTimer = null;
-    //     }
-    // }
-
 
     private void start() {
         updatePhase(Phase.SELECTION);
@@ -271,9 +268,6 @@ public class GameRoom extends Room {
                 handleSelectionPhaseEnd();
             }
         }, selectionTimeLimit * 1000); // Convert seconds to milliseconds
-    
-        // Logic to handle player selection goes here
-        // Players should choose ROCK, PAPER, or SCISSORS during this phase
     }
 
     private void reportResult(ServerPlayer player1, ServerPlayer player2, String result) {
@@ -303,26 +297,20 @@ public class GameRoom extends Room {
     }
 
     private void handleSelectionPhaseEnd() {
-        // Logic to end the selection phase
-        // This method will be called when the selection phase timer ends
-        // You can proceed with determining the winners or taking any necessary actions
-        calculateWinners(); // Example: Calculate the winners based on player choices
-        resetSession(); // Reset the session for a new round or game
+
+        calculateWinners();
+        resetSession(); 
     }
 
     public void startGame(){
         if (players.size() >= Constants.MINIMUM_PLAYERS) {
-            // Check if enough players are ready to start the game
             boolean allReady = players.values().stream().allMatch(ServerPlayer::isReady);
             if (allReady) {
-                // Start the game if all players are ready
                 start();
             } else {
-                // Inform players that there are not enough ready players
                 sendMessageToAll("Not enough players are ready to start the game.");
             }
         } else {
-            // Inform players that there are not enough players to start the game
             sendMessageToAll("Not enough players to start the game.");
         }
     }

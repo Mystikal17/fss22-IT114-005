@@ -5,6 +5,8 @@ import java.awt.CardLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.swing.JPanel;
 
@@ -25,8 +27,6 @@ import Project2.server.GameRoom;
 
 public class GamePanel extends JPanel implements IGameEvents {
     private CardLayout cardLayout;
-    private JButton loadButton;
-
 
     public GamePanel(ICardControls controls) {
         super(new CardLayout());
@@ -47,7 +47,7 @@ public class GamePanel extends JPanel implements IGameEvents {
         });
         createReadyPanel();
         createGameView();
-        createChoicePanel();
+        //createChoicePanel();
         setVisible(false);
         // don't need to add this to ClientUI as this isn't a primary panel(it's nested
         // in ChatGamePanel)
@@ -68,17 +68,7 @@ public class GamePanel extends JPanel implements IGameEvents {
         });
         readyPanel.add(readyButton);
         this.add(readyPanel);
-
-         JButton startButton = new JButton();
-    startButton.setText("Start");
-    startButton.addActionListener(e -> {
-        // Perform actions related to starting the game here
-    });
-    readyPanel.add(startButton);
-
-    this.add(readyPanel);
-}
-    
+    }
 
     private void createGameView() {
         JPanel container = new JPanel(new BorderLayout());
@@ -90,12 +80,14 @@ public class GamePanel extends JPanel implements IGameEvents {
         add(container);
     }
 
-       @Override
+     @Override
     public void onReceivePhase(Phase phase) {
         // I'll temporarily do next(), but there may be scenarios where the screen can
         // be inaccurate
         System.out.println("Received phase: " + phase.name());
         if (phase == Phase.READY) {
+                
+            
             if (!isVisible()) {
                 setVisible(true);
                 this.getParent().revalidate();
@@ -106,41 +98,43 @@ public class GamePanel extends JPanel implements IGameEvents {
             }
         } else if (phase == Phase.SELECTION) {
             cardLayout.next(this);
-        }
+        } 
     }
+ 
 
-    private void createChoicePanel(){
-        JButton rockButton = new JButton("Rock");
-        rockButton.addActionListener(e -> {
-            try {
-                Client.INSTANCE.sendChoice("Rock");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
+    // private void createChoicePanel(){
+    //     JButton rockButton = new JButton("Rock");
+    //     rockButton.addActionListener(e -> {
+    //         try {
+    //             Client.INSTANCE.sendChoice("Rock");
+    //         } catch (IOException ex) {
+    //             ex.printStackTrace();
+    //         }
+    //     });
 
-        JButton paperButton = new JButton("Paper");
-        paperButton.addActionListener(e -> {
-            try {
-                Client.INSTANCE.sendChoice("Paper");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
+    //     JButton paperButton = new JButton("Paper");
+    //     paperButton.addActionListener(e -> {
+    //         try {
+    //             Client.INSTANCE.sendChoice("Paper");
+    //         } catch (IOException ex) {
+    //             ex.printStackTrace();
+    //         }
+    //     });
 
-        JButton scissorsButton = new JButton("Scissors");
-        scissorsButton.addActionListener(e -> {
-            try {
-                Client.INSTANCE.sendChoice("Scissors");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
+    //     JButton scissorsButton = new JButton("Scissors");
+    //     scissorsButton.addActionListener(e -> {
+    //         try {
+    //             Client.INSTANCE.sendChoice("Scissors");
+    //         } catch (IOException ex) {
+    //             ex.printStackTrace();
+    //         }
+    //     });
 
-        add(rockButton);
-        add(paperButton);
-        add(scissorsButton);
-    }
+    //     add(rockButton);
+    //     add(paperButton);
+    //     add(scissorsButton);
+    //     //Move to its own panel so all 3 show
+    // }
 
 
     @Override
