@@ -42,4 +42,4 @@ public class Grid implements Serializable {
     public void setColors(char[][] newColors) {
         this.colors = newColors;
     }
-}
+} 
