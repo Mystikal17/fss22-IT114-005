@@ -2,6 +2,7 @@ package Project2.client.views;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class GamePanel extends JPanel implements IGameEvents {
         });
         createReadyPanel();
         createGameView();
-        //createChoicePanel();
+        createChoicePanel();
         setVisible(false);
         // don't need to add this to ClientUI as this isn't a primary panel(it's nested
         // in ChatGamePanel)
@@ -78,6 +79,57 @@ public class GamePanel extends JPanel implements IGameEvents {
         splitPane.setEnabled(false); // This makes the divider non-movable
         container.add(splitPane, BorderLayout.CENTER);
         add(container);
+    }
+
+    public void createChoicePanel(){
+         JPanel container = new JPanel(new BorderLayout());
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, getFocusTraversalKeysEnabled());
+        splitPane.setResizeWeight(.8);
+        splitPane.setOneTouchExpandable(false); // This disables the one-touch expandable buttons
+        splitPane.setEnabled(false); // This makes the divider non-movable
+        container.add(splitPane, BorderLayout.CENTER);
+        add(container);
+
+
+        JButton rockButton = new JButton("Rock");
+        rockButton.addActionListener(e -> {
+            try {
+                Client.INSTANCE.sendChoice("Rock");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        rockButton.setPreferredSize(new Dimension(10, 50)); // Adjust width and height as needed
+
+
+        JButton paperButton = new JButton("Paper");
+        paperButton.addActionListener(e -> {
+            try {
+                Client.INSTANCE.sendChoice("Paper");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+         paperButton.setPreferredSize(new Dimension(10, 50)); // Adjust width and height as needed
+
+
+        JButton scissorsButton = new JButton("Scissors");
+        scissorsButton.addActionListener(e -> {
+            try {
+                Client.INSTANCE.sendChoice("Scissors");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+        scissorsButton.setPreferredSize(new Dimension(10, 50)); // Adjust width and height as needed
+
+
+        add(rockButton);
+        add(paperButton);
+        add(scissorsButton);
+        add(container);
+
+        //Move to its own panel so all 3 show
     }
 
      @Override
